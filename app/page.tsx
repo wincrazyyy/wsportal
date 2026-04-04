@@ -1,28 +1,13 @@
-import { AuthButton } from "@/components/auth-button";
+import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import Link from "next/link";
-import { Suspense } from "react";
-import { GraduationCap, ShieldCheck, PlayCircle, BookOpen, ChevronRight } from "lucide-react";
+import { ShieldCheck, PlayCircle, BookOpen, ChevronRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 export default function Home() {
   return (
     <main className="min-h-screen flex flex-col bg-background selection:bg-primary/20">
-      <nav className="w-full flex justify-center border-b h-16 sticky top-0 bg-background/80 backdrop-blur-md z-50">
-        <div className="w-full max-w-5xl flex justify-between items-center p-3 px-5 text-sm">
-          <div className="flex gap-5 items-center font-bold text-lg">
-            <Link href={"/"} className="flex items-center gap-2 text-primary hover:opacity-80 transition-opacity">
-              <GraduationCap className="w-6 h-6" />
-              <span>WSPortal</span>
-            </Link>
-          </div>
-          <div className="flex items-center gap-4">
-            <Suspense>
-              <AuthButton />
-            </Suspense>
-          </div>
-        </div>
-      </nav>
+      <Navbar />
 
       <section className="w-full bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 py-24 text-white shadow-lg">
         <div className="max-w-5xl mx-auto flex flex-col items-center text-center px-5 gap-8">
