@@ -1,4 +1,3 @@
-// app/page.tsx
 import { AuthButton } from "@/components/auth-button";
 import { Footer } from "@/components/layout/footer";
 import Link from "next/link";
