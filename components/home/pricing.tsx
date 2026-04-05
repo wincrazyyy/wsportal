@@ -12,6 +12,7 @@ export function Pricing() {
             <h2 className="text-3xl md:text-5xl font-extrabold tracking-tight text-foreground leading-tight">
               The only resource you need for a Level 7.
             </h2>
+            
             <p className="text-lg text-muted-foreground leading-relaxed">
               Stop guessing what to study. Our IBDP Math Mastery System provides a complete, A-to-Z roadmap. We've stripped away the fluff so you can focus entirely on what actually appears on the exams.
             </p>
