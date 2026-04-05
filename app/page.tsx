@@ -1,9 +1,9 @@
-// app/page.tsx
 import { Navbar } from "@/components/layout/navbar";
 import { Footer } from "@/components/layout/footer";
 import { Hero } from "@/components/home/hero";
 import { Features } from "@/components/home/features";
 import { Pricing } from "@/components/home/pricing";
+import { FAQ } from "@/components/home/faq";
 
 export default function Home() {
   return (
@@ -12,6 +12,7 @@ export default function Home() {
       <Hero />
       <Features />
       <Pricing />
+      <FAQ />
       <Footer />
     </main>
   );
