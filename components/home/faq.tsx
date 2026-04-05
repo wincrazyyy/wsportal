@@ -5,6 +5,7 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 
+
 export function FAQ() {
   return (
     <section className="w-full py-24 bg-background flex flex-col items-center">
