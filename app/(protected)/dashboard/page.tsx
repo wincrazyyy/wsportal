@@ -1,16 +1,21 @@
 import { createClient } from "@/lib/supabase/server";
+import { redirect } from "next/navigation";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { PlayCircle, BookOpen, Clock } from "lucide-react";
 
 export default async function DashboardPage() {
   const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
+  const { data: { user }, error } = await supabase.auth.getUser();
+
+  if (error || !user) {
+    redirect("/login");
+  }
 
   return (
     <div className="flex-1 p-8 overflow-y-auto">
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight mb-2">
-          Welcome back, {user?.email?.split('@')[0] || "Student"}! 👋
+          Welcome back, {user.email?.split('@')[0] || "Student"}! 👋
         </h1>
         <p className="text-muted-foreground">
           Here is your current progress in the IBDP Math Mastery System.
