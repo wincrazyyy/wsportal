@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ThemeSwitcher } from "@/components/theme-switcher";
+import { ThemeSwitcher } from "@/components/layout/theme-switcher";
 import { useState, useEffect } from "react";
 
 export function Footer() {
