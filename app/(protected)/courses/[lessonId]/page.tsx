@@ -18,12 +18,12 @@ const mockLessonData = {
 export default async function LessonPlayerPage({ params }: { params: Promise<{ lessonId: string }> }) {
   const { lessonId } = await params;
 
-  // Real DB Fetching logic (commented out until you run the SQL)
+  // Real DB Fetching logic (commented out for now)
   // const supabase = await createClient();
   // const { data: lesson } = await supabase.from("lessons").select("*").eq("id", lessonId).single();
   // if (!lesson) return redirect("/courses");
   
-  // Using mock data for now so the UI doesn't crash
+  // Using mock data for now
   const lessonData = mockLessonData; 
 
   return (
