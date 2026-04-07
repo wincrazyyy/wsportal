@@ -117,9 +117,9 @@ export default function CoursesPage() {
                   </div>
                 </div>
                 <div>
-                  {module.status === "completed" && <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400">Completed</Badge>}
-                  {module.status === "active" && <Badge className="bg-primary hover:bg-primary">In Progress</Badge>}
-                  {module.status === "locked" && <Badge variant="outline" className="text-muted-foreground"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>}
+                  {module.status === "completed" && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent font-semibold">Completed</Badge>}
+                  {module.status === "active" && <Badge className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">In Progress</Badge>}
+                  {module.status === "locked" && <Badge variant="outline" className="text-muted-foreground font-semibold"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>}
                 </div>
               </div>
 
@@ -132,7 +132,7 @@ export default function CoursesPage() {
                   >
                     <div className="flex items-center gap-4">
                       {lesson.completed ? (
-                        <CheckCircle2 className="w-5 h-5 text-emerald-500 shrink-0" />
+                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
                       ) : (
                         <PlayCircle className="w-5 h-5 text-muted-foreground shrink-0" />
                       )}
