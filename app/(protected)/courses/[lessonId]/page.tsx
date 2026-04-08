@@ -2,16 +2,17 @@ import { createClient } from "@/lib/supabase/server";
 import { LessonPlayerClient } from "@/components/courses/lesson-player-client";
 import { redirect } from "next/navigation";
 
-const mockLessonData = {
+const mockVideoData = {
   id: "les-9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4",
-  title: "Inverse Functions & Transformations",
-  module: "Module 2: Functions",
-  duration: "1h 10m",
-  description: "In this deep dive, we explore the relationship between a function and its inverse. We cover the horizontal line test, algebraic methods for finding f⁻¹(x), and how transformations affect the domain and range of inverse functions.",
+  title: "Translations & Dilations",
+  topic: "Topic 2: Functions",
+  subtopic: "2.2 Transformations",
+  duration: "45m",
+  description: "In this deep dive, we explore how translations and dilations alter the graph of a function. We cover horizontal and vertical shifts, stretches, and how to represent these transformations algebraically.",
   resources: [
-    { name: "Lesson Slides (PDF)", size: "2.4 MB" },
-    { name: "Practice Problem Set", size: "1.1 MB" },
-    { name: "Formula Cheat Sheet", size: "0.5 MB" },
+    { name: "Transformation Cheat Sheet (PDF)", size: "1.4 MB" },
+    { name: "Practice Problem Set", size: "2.1 MB" },
+    { name: "Mark Scheme", size: "0.8 MB" },
   ]
 };
 
@@ -20,16 +21,15 @@ export default async function LessonPlayerPage({ params }: { params: Promise<{ l
 
   // Real DB Fetching logic (commented out for now)
   // const supabase = await createClient();
-  // const { data: lesson } = await supabase.from("lessons").select("*").eq("id", lessonId).single();
-  // if (!lesson) return redirect("/courses");
-  
-  // Using mock data for now
-  const lessonData = mockLessonData; 
+  // const { data: video } = await supabase.from("videos").select("*").eq("id", lessonId).single();
+  // if (!video) return redirect("/courses");
+
+  const videoData = mockVideoData; 
 
   return (
     <LessonPlayerClient 
       lessonId={lessonId} 
-      lessonData={lessonData} 
+      lessonData={videoData} 
     />
   );
 }
