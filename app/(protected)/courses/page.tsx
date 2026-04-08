@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PlayCircle, CheckCircle2, Lock, Clock, Play } from "lucide-react";
+import { PlayCircle, CheckCircle2, Lock, Clock, Play, FolderTree } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -13,46 +13,124 @@ const currentClass = {
 
 const curriculum = [
   {
-    id: "mod-d290f1ee-6c54-4b01-90e6-d701748f0851",
-    title: "Module 1: Algebra & Equations",
-    totalDuration: "2h 15m",
+    id: "top-1",
+    title: "Topic 1: Number & Algebra",
+    totalDuration: "4h 15m",
     status: "completed",
-    lessons: [
-      { id: "les-c64a5d8b-1a2b-3c4d-5e6f-7a8b9c0d1e2f", title: "Sequences and Series", duration: "45m", completed: true },
-      { id: "les-b31d9e7c-8f9a-0b1c-2d3e-4f5a6b7c8d9e", title: "Exponents and Logarithms", duration: "50m", completed: true },
-      { id: "les-a1b2c3d4-e5f6-7a8b-9c0d-1e2f3a4b5c6d", title: "Binomial Theorem", duration: "40m", completed: true },
-    ],
+    subtopics: [
+      {
+        id: "sub-1-1",
+        title: "1.1 Sequences and Series",
+        videos: [
+          { id: "vid-1a", title: "Arithmetic Sequences & Series", duration: "25m", completed: true },
+          { id: "vid-1b", title: "Geometric Sequences & Series", duration: "30m", completed: true },
+        ]
+      },
+      {
+        id: "sub-1-2",
+        title: "1.2 Exponents and Logarithms",
+        videos: [
+          { id: "vid-1c", title: "Laws of Exponents", duration: "20m", completed: true },
+          { id: "vid-1d", title: "Logarithmic Equations", duration: "35m", completed: true },
+        ]
+      }
+    ]
   },
   {
-    id: "mod-8a2b5c71-3318-4221-8408-72481023023e",
-    title: "Module 2: Functions",
-    totalDuration: "3h 45m",
+    id: "top-2",
+    title: "Topic 2: Functions",
+    totalDuration: "5h 30m",
     status: "active",
-    lessons: [
-      { id: "les-f1e2d3c4-b5a6-9f8e-7d6c-5b4a3f2e1d0c", title: "Domain, Range, and Composite Functions", duration: "55m", completed: true },
-      { id: "les-9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4", title: "Inverse Functions & Transformations", duration: "1h 10m", completed: false },
-      { id: "les-1a2b3c4d-5e6f-7a8b-9c0d-e1f2a3b4c5d6", title: "Rational Functions", duration: "45m", completed: false },
-      { id: "les-7a8b9c0d-1e2f-3a4b-5c6d-e7f8a9b0c1d2", title: "Exponential & Logarithmic Functions", duration: "55m", completed: false },
-    ],
+    subtopics: [
+      {
+        id: "sub-2-1",
+        title: "2.1 Linear & Quadratic Functions",
+        videos: [
+          { id: "vid-2a", title: "Domain, Range & Composites", duration: "40m", completed: true },
+          { id: "vid-2b", title: "Inverse Functions", duration: "35m", completed: true },
+        ]
+      },
+      {
+        id: "sub-2-2",
+        title: "2.2 Transformations",
+        videos: [
+          { id: "vid-2c", title: "Translations & Dilations", duration: "45m", completed: false }, // CURRENT VIDEO
+          { id: "vid-2d", title: "Absolute Value Transformations", duration: "30m", completed: false },
+        ]
+      }
+    ]
   },
   {
-    id: "mod-e9b7b9cc-8b45-4246-8805-4c0716c5b96b",
-    title: "Module 3: Calculus (Differentiation)",
-    totalDuration: "4h 20m",
+    id: "top-3",
+    title: "Topic 3: Geometry & Trigonometry",
+    totalDuration: "6h 00m",
     status: "locked",
-    lessons: [
-      { id: "les-3a4b5c6d-7e8f-9a0b-1c2d-e3f4a5b6c7d8", title: "Limits and Principles", duration: "40m", completed: false },
-      { id: "les-5c6d7e8f-9a0b-1c2d-3e4f-a5b6c7d8e9f0", title: "Chain, Product, and Quotient Rules", duration: "1h 20m", completed: false },
-      { id: "les-9a0b1c2d-3e4f-5a6b-7c8d-e9f0a1b2c3d4", title: "Kinematics & Optimization", duration: "1h 15m", completed: false },
-    ],
+    subtopics: [
+      {
+        id: "sub-3-1",
+        title: "3.1 3D Geometry",
+        videos: [
+          { id: "vid-3a", title: "Volume & Surface Area", duration: "30m", completed: false },
+          { id: "vid-3b", title: "Angles in 3D Space", duration: "40m", completed: false },
+        ]
+      },
+      {
+        id: "sub-3-2",
+        title: "3.2 Trigonometric Functions",
+        videos: [
+          { id: "vid-3c", title: "The Unit Circle", duration: "35m", completed: false },
+        ]
+      }
+    ]
   },
+  {
+    id: "top-4",
+    title: "Topic 4: Statistics & Probability",
+    totalDuration: "4h 45m",
+    status: "locked",
+    subtopics: [
+      {
+        id: "sub-4-1",
+        title: "4.1 Descriptive Statistics",
+        videos: [
+          { id: "vid-4a", title: "Mean, Variance & Standard Deviation", duration: "40m", completed: false },
+        ]
+      }
+    ]
+  },
+  {
+    id: "top-5",
+    title: "Topic 5: Calculus",
+    totalDuration: "8h 20m",
+    status: "locked",
+    subtopics: [
+      {
+        id: "sub-5-1",
+        title: "5.1 Differentiation",
+        videos: [
+          { id: "vid-5a", title: "Limits & First Principles", duration: "45m", completed: false },
+          { id: "vid-5b", title: "Chain, Product & Quotient Rules", duration: "50m", completed: false },
+        ]
+      }
+    ]
+  }
 ];
 
 export default function CoursesPage() {
   const overallProgress = 38;
 
-  const activeModule = curriculum.find(m => m.status === 'active');
-  const nextLesson = activeModule?.lessons.find(l => !l.completed);
+  const allVideos = curriculum.flatMap(topic => 
+    topic.subtopics.flatMap(sub => 
+      sub.videos.map(video => ({
+        ...video,
+        topicTitle: topic.title,
+        subtopicTitle: sub.title,
+        topicStatus: topic.status
+      }))
+    )
+  );
+  
+  const nextVideo = allVideos.find(v => !v.completed && v.topicStatus !== "locked");
 
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-6xl mx-auto w-full">
@@ -77,7 +155,7 @@ export default function CoursesPage() {
         </div>
       </div>
 
-      {nextLesson && activeModule && (
+      {nextVideo && (
         <Card className="w-full relative overflow-hidden border-2 border-primary/20 bg-card shadow-lg mb-12">
           <div className="absolute top-0 left-0 w-1.5 h-full bg-primary"></div>
           <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
@@ -87,11 +165,11 @@ export default function CoursesPage() {
               </div>
               <div>
                 <div className="text-sm font-bold text-primary mb-1 uppercase tracking-wider">Up Next</div>
-                <h2 className="text-2xl font-bold mb-2">{nextLesson.title}</h2>
-                <p className="text-muted-foreground">{activeModule.title} • {nextLesson.duration}</p>
+                <h2 className="text-2xl font-bold mb-2">{nextVideo.title}</h2>
+                <p className="text-muted-foreground">{nextVideo.subtopicTitle} • {nextVideo.duration}</p>
               </div>
             </div>
-            <Link href={`/courses/${nextLesson.id}`} className="w-full md:w-auto shrink-0">
+            <Link href={`/courses/${nextVideo.id}`} className="w-full md:w-auto shrink-0">
               <Button size="lg" className="w-full rounded-full text-md h-12 px-8 shadow-md">
                 Resume Lesson
               </Button>
@@ -101,59 +179,70 @@ export default function CoursesPage() {
       )}
 
       <div className="space-y-8">
-        <h2 className="text-2xl font-bold">Curriculum</h2>
+        <h2 className="text-2xl font-bold">Curriculum Topics</h2>
         
         <div className="flex flex-col gap-6">
-          {curriculum.map((module, index) => (
-            <div key={module.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-              
-              <div className="p-5 md:p-6 bg-muted/30 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
-                <div>
-                  <h3 className="text-xl font-bold mb-1">{module.title}</h3>
-                  <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                    <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {module.totalDuration}</span>
-                    <span>•</span>
-                    <span>{module.lessons.length} Lessons</span>
+          {curriculum.map((topic) => {
+            const totalVideos = topic.subtopics.reduce((acc, sub) => acc + sub.videos.length, 0);
+
+            return (
+              <div key={topic.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+                <div className="p-5 md:p-6 bg-muted/30 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div>
+                    <h3 className="text-xl font-bold mb-1">{topic.title}</h3>
+                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                      <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {topic.totalDuration}</span>
+                      <span>•</span>
+                      <span className="flex items-center gap-1"><FolderTree className="w-4 h-4" /> {topic.subtopics.length} Subtopics</span>
+                      <span>•</span>
+                      <span>{totalVideos} Videos</span>
+                    </div>
+                  </div>
+                  <div>
+                    {topic.status === "completed" && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent font-semibold">Completed</Badge>}
+                    {topic.status === "active" && <Badge className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">In Progress</Badge>}
+                    {topic.status === "locked" && <Badge variant="outline" className="text-muted-foreground font-semibold"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>}
                   </div>
                 </div>
-                <div>
-                  {module.status === "completed" && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent font-semibold">Completed</Badge>}
-                  {module.status === "active" && <Badge className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">In Progress</Badge>}
-                  {module.status === "locked" && <Badge variant="outline" className="text-muted-foreground font-semibold"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>}
-                </div>
-              </div>
 
-              <div className="flex flex-col">
-                {module.lessons.map((lesson, lessonIndex) => (
-                  <Link 
-                    key={lesson.id} 
-                    href={`/courses/${lesson.id}`}
-                    className={`flex items-center justify-between p-4 px-5 md:px-6 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${module.status === "locked" ? "opacity-60 pointer-events-none" : ""}`}
-                  >
-                    <div className="flex items-center gap-4">
-                      {lesson.completed ? (
-                        <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                      ) : (
-                        <PlayCircle className="w-5 h-5 text-muted-foreground shrink-0" />
-                      )}
-                      <div>
-                        <span className="text-sm font-medium text-muted-foreground mr-3">
-                          {index + 1}.{lessonIndex + 1}
-                        </span>
-                        <span className={`font-medium ${lesson.completed ? "text-muted-foreground" : "text-foreground"}`}>
-                          {lesson.title}
-                        </span>
+                <div className="flex flex-col">
+                  {topic.subtopics.map((subtopic) => (
+                    <div key={subtopic.id} className="border-b border-border/50 last:border-0">
+                      <div className="bg-muted/10 px-5 md:px-6 py-3 text-sm font-bold text-muted-foreground uppercase tracking-wide border-b border-border/50">
+                        {subtopic.title}
                       </div>
-                    </div>
-                    <div className="text-sm text-muted-foreground">
-                      {lesson.duration}
-                    </div>
-                  </Link>
-                ))}
-              </div>
 
-            </div>
-          ))}
+                      <div className="flex flex-col">
+                        {subtopic.videos.map((video) => (
+                          <Link 
+                            key={video.id} 
+                            href={`/courses/${video.id}`}
+                            className={`flex items-center justify-between p-4 px-5 md:px-6 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${topic.status === "locked" ? "opacity-60 pointer-events-none" : ""}`}
+                          >
+                            <div className="flex items-center gap-4">
+                              {video.completed ? (
+                                <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                              ) : (
+                                <PlayCircle className="w-5 h-5 text-muted-foreground shrink-0" />
+                              )}
+                              <span className={`font-medium ${video.completed ? "text-muted-foreground" : "text-foreground"}`}>
+                                {video.title}
+                              </span>
+                            </div>
+                            <div className="text-sm text-muted-foreground">
+                              {video.duration}
+                            </div>
+                          </Link>
+                        ))}
+                      </div>
+
+                    </div>
+                  ))}
+                </div>
+
+              </div>
+            );
+          })}
         </div>
       </div>
 
