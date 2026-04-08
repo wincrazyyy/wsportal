@@ -3,6 +3,7 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+
 const curriculum = [
   {
     id: "top-d290f1ee-6c54-4b01-90e6-d701748f0851",
