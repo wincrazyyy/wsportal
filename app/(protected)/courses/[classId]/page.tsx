@@ -15,6 +15,12 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 
 const currentClass = {
   id: "pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab",
@@ -49,6 +55,7 @@ const classAnnouncements = [
   }
 ];
 
+// Curriculm mock data...
 const curriculum = [
   {
     id: "top-d290f1ee-6c54-4b01-90e6-d701748f0851",
@@ -92,7 +99,7 @@ const curriculum = [
         id: "sub-8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
         title: "2.2 Transformations",
         videos: [
-          { id: "les-9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4", title: "Translations & Dilations", duration: "45m", completed: false }, // CURRENT VIDEO
+          { id: "les-9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4", title: "Translations & Dilations", duration: "45m", completed: false }, 
           { id: "les-4b5c6d7e-8f9a-0b1c-2d3e-4f5a6b7c8d9e", title: "Absolute Value Transformations", duration: "30m", completed: false },
         ]
       }
@@ -160,9 +167,6 @@ export default async function ClassCurriculumPage({
   params: Promise<{ classId: string }> 
 }) {
   const { classId } = await params;
-  
-  // Later: fetch currentClass, classAnnouncements, and curriculum based on classId
-
   const overallProgress = 38;
 
   const allVideos = curriculum.flatMap(topic => 
@@ -208,7 +212,6 @@ export default async function ClassCurriculumPage({
         </div>
       </div>
 
-      {/* Split Layout Container */}
       <div className="flex flex-col lg:flex-row gap-8">
         
         {/* LEFT COLUMN: Main Curriculum & Hero */}
@@ -239,73 +242,80 @@ export default async function ClassCurriculumPage({
 
           <div>
             <h2 className="text-2xl font-bold mb-6">Topics</h2>
-            <div className="flex flex-col gap-6">
+            <Accordion type="single" collapsible className="w-full flex flex-col gap-4">
               {curriculum.map((topic) => {
                 const totalVideos = topic.subtopics.reduce((acc, sub) => acc + sub.videos.length, 0);
 
                 return (
-                  <div key={topic.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-                    <div className="p-5 md:p-6 bg-muted/30 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
-                      <div>
-                        <h3 className="text-xl font-bold mb-1">{topic.title}</h3>
-                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                          <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {topic.totalDuration}</span>
-                          <span>•</span>
-                          <span className="flex items-center gap-1"><FolderTree className="w-4 h-4" /> {topic.subtopics.length} Subtopics</span>
-                          <span>•</span>
-                          <span>{totalVideos} Videos</span>
+                  <AccordionItem 
+                    key={topic.id} 
+                    value={topic.id} 
+                    className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden"
+                  >
+                    <AccordionTrigger className="p-5 md:p-6 bg-muted/30 hover:bg-muted/50 transition-colors border-b border-border hover:no-underline [&[data-state=open]]:bg-muted/50">
+                      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 w-full pr-4 text-left">
+                        <div>
+                          <h3 className="text-xl font-bold mb-1">{topic.title}</h3>
+                          <div className="flex items-center gap-3 text-sm text-muted-foreground font-normal">
+                            <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {topic.totalDuration}</span>
+                            <span>•</span>
+                            <span className="flex items-center gap-1"><FolderTree className="w-4 h-4" /> {topic.subtopics.length} Subtopics</span>
+                            <span>•</span>
+                            <span>{totalVideos} Videos</span>
+                          </div>
+                        </div>
+                        <div className="shrink-0">
+                          {topic.status === "completed" && <Badge variant="secondary" className="bg-primary/10 text-primary border-transparent font-semibold pointer-events-none">Completed</Badge>}
+                          {topic.status === "active" && <Badge className="bg-primary text-primary-foreground font-semibold pointer-events-none">In Progress</Badge>}
+                          {topic.status === "locked" && <Badge variant="outline" className="text-muted-foreground font-semibold pointer-events-none"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>}
                         </div>
                       </div>
-                      <div>
-                        {topic.status === "completed" && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent font-semibold">Completed</Badge>}
-                        {topic.status === "active" && <Badge className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">In Progress</Badge>}
-                        {topic.status === "locked" && <Badge variant="outline" className="text-muted-foreground font-semibold"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>}
+                    </AccordionTrigger>
+
+                    <AccordionContent className="p-0 border-none">
+                      <div className="flex flex-col">
+                        {topic.subtopics.map((subtopic) => (
+                          <div key={subtopic.id} className="border-b border-border/50 last:border-0">
+                            <div className="bg-muted/10 px-5 md:px-6 py-3 text-sm font-bold text-muted-foreground uppercase tracking-wide border-b border-border/50">
+                              {subtopic.title}
+                            </div>
+
+                            <div className="flex flex-col">
+                              {subtopic.videos.map((video) => (
+                                <Link 
+                                  key={video.id} 
+                                  href={`/lessons/${video.id}`}
+                                  className={`flex items-center justify-between p-4 px-5 md:px-6 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${topic.status === "locked" ? "opacity-60 pointer-events-none" : ""}`}
+                                >
+                                  <div className="flex items-center gap-4">
+                                    {video.completed ? (
+                                      <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                                    ) : (
+                                      <PlayCircle className="w-5 h-5 text-muted-foreground shrink-0" />
+                                    )}
+                                    <span className={`font-medium text-[15px] ${video.completed ? "text-muted-foreground" : "text-foreground"}`}>
+                                      {video.title}
+                                    </span>
+                                  </div>
+                                  <div className="text-sm text-muted-foreground font-medium">
+                                    {video.duration}
+                                  </div>
+                                </Link>
+                              ))}
+                            </div>
+
+                          </div>
+                        ))}
                       </div>
-                    </div>
+                    </AccordionContent>
 
-                    <div className="flex flex-col">
-                      {topic.subtopics.map((subtopic) => (
-                        <div key={subtopic.id} className="border-b border-border/50 last:border-0">
-                          <div className="bg-muted/10 px-5 md:px-6 py-3 text-sm font-bold text-muted-foreground uppercase tracking-wide border-b border-border/50">
-                            {subtopic.title}
-                          </div>
-
-                          <div className="flex flex-col">
-                            {subtopic.videos.map((video) => (
-                              <Link 
-                                key={video.id} 
-                                href={`/lessons/${video.id}`}
-                                className={`flex items-center justify-between p-4 px-5 md:px-6 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${topic.status === "locked" ? "opacity-60 pointer-events-none" : ""}`}
-                              >
-                                <div className="flex items-center gap-4">
-                                  {video.completed ? (
-                                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                                  ) : (
-                                    <PlayCircle className="w-5 h-5 text-muted-foreground shrink-0" />
-                                  )}
-                                  <span className={`font-medium ${video.completed ? "text-muted-foreground" : "text-foreground"}`}>
-                                    {video.title}
-                                  </span>
-                                </div>
-                                <div className="text-sm text-muted-foreground">
-                                  {video.duration}
-                                </div>
-                              </Link>
-                            ))}
-                          </div>
-
-                        </div>
-                      ))}
-                    </div>
-
-                  </div>
+                  </AccordionItem>
                 );
               })}
-            </div>
+            </Accordion>
           </div>
         </div>
 
-        {/* RIGHT COLUMN: Class-Specific Announcements Feed */}
         <div className="w-full lg:w-80 xl:w-96 shrink-0 space-y-6">
           <div className="flex items-center justify-between">
             <h2 className="text-xl font-bold">Class Updates</h2>
