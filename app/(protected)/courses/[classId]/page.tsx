@@ -1,5 +1,16 @@
 import Link from "next/link";
-import { PlayCircle, CheckCircle2, Lock, Clock, Play, FolderTree, ArrowLeft } from "lucide-react";
+import { 
+  PlayCircle, 
+  CheckCircle2, 
+  Lock, 
+  Clock, 
+  Play, 
+  FolderTree, 
+  ArrowLeft,
+  Megaphone,
+  Bell,
+  CalendarDays
+} from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
@@ -10,6 +21,33 @@ const currentClass = {
   code: "AA HL",
   title: "IBDP Math AA HL Mastery System"
 };
+
+const classAnnouncements = [
+  {
+    id: "ann-math-1",
+    title: "Topic 2 Practice Quiz Live",
+    content: "I have just published a 15-question practice quiz for Functions. I highly recommend completing it before moving on to Calculus.",
+    date: "4 hours ago",
+    type: "important",
+    icon: Bell
+  },
+  {
+    id: "ann-math-2",
+    title: "Correction in Video 2.2",
+    content: "At timestamp 14:20 in the Translations video, the x-axis shift should be to the LEFT, not the right. A note has been added to the video player.",
+    date: "2 days ago",
+    type: "standard",
+    icon: Megaphone
+  },
+  {
+    id: "ann-math-3",
+    title: "Calculus Bootcamp Next Week",
+    content: "We will be running a live deep-dive into Integration by Parts next Thursday. Check your email for the Zoom link.",
+    date: "5 days ago",
+    type: "event",
+    icon: CalendarDays
+  }
+];
 
 const curriculum = [
   {
@@ -54,7 +92,7 @@ const curriculum = [
         id: "sub-8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
         title: "2.2 Transformations",
         videos: [
-          { id: "les-9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4", title: "Translations & Dilations", duration: "45m", completed: false }, 
+          { id: "les-9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4", title: "Translations & Dilations", duration: "45m", completed: false }, // CURRENT VIDEO
           { id: "les-4b5c6d7e-8f9a-0b1c-2d3e-4f5a6b7c8d9e", title: "Absolute Value Transformations", duration: "30m", completed: false },
         ]
       }
@@ -123,7 +161,7 @@ export default async function ClassCurriculumPage({
 }) {
   const { classId } = await params;
   
-  // Later: fetch currentClass and curriculum based on classId
+  // Later: fetch currentClass, classAnnouncements, and curriculum based on classId
 
   const overallProgress = 38;
 
@@ -141,7 +179,7 @@ export default async function ClassCurriculumPage({
   const nextVideo = allVideos.find(v => !v.completed && v.topicStatus !== "locked");
 
   return (
-    <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-6xl mx-auto w-full">
+    <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full">
       <Link href="/courses">
         <Button variant="ghost" size="sm" className="mb-6 gap-2 text-muted-foreground hover:text-foreground -ml-2">
           <ArrowLeft className="w-4 h-4" />
@@ -170,97 +208,153 @@ export default async function ClassCurriculumPage({
         </div>
       </div>
 
-      {nextVideo && (
-        <Card className="w-full relative overflow-hidden border-2 border-primary/20 bg-card shadow-lg mb-12">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-primary"></div>
-          <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-start gap-5">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Play className="w-8 h-8 text-primary ml-1" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-primary mb-1 uppercase tracking-wider">Up Next</div>
-                <h2 className="text-2xl font-bold mb-2">{nextVideo.title}</h2>
-                <p className="text-muted-foreground">{nextVideo.subtopicTitle} • {nextVideo.duration}</p>
-              </div>
-            </div>
-            <Link href={`/lessons/${nextVideo.id}`} className="w-full md:w-auto shrink-0">
-              <Button size="lg" className="w-full rounded-full text-md h-12 px-8 shadow-md">
-                Resume Lesson
-              </Button>
-            </Link>
-          </div>
-        </Card>
-      )}
-
-      <div className="space-y-8">
-        <h2 className="text-2xl font-bold">Topics</h2>
+      {/* Split Layout Container */}
+      <div className="flex flex-col lg:flex-row gap-8">
         
-        <div className="flex flex-col gap-6">
-          {curriculum.map((topic) => {
-            const totalVideos = topic.subtopics.reduce((acc, sub) => acc + sub.videos.length, 0);
-
-            return (
-              <div key={topic.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
-                <div className="p-5 md:p-6 bg-muted/30 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
-                  <div>
-                    <h3 className="text-xl font-bold mb-1">{topic.title}</h3>
-                    <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                      <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {topic.totalDuration}</span>
-                      <span>•</span>
-                      <span className="flex items-center gap-1"><FolderTree className="w-4 h-4" /> {topic.subtopics.length} Subtopics</span>
-                      <span>•</span>
-                      <span>{totalVideos} Videos</span>
-                    </div>
+        {/* LEFT COLUMN: Main Curriculum & Hero */}
+        <div className="flex-1 space-y-8">
+          
+          {nextVideo && (
+            <Card className="w-full relative overflow-hidden border-2 border-primary/20 bg-card shadow-lg">
+              <div className="absolute top-0 left-0 w-1.5 h-full bg-primary"></div>
+              <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+                <div className="flex items-start gap-5">
+                  <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
+                    <Play className="w-8 h-8 text-primary ml-1" />
                   </div>
                   <div>
-                    {topic.status === "completed" && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent font-semibold">Completed</Badge>}
-                    {topic.status === "active" && <Badge className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">In Progress</Badge>}
-                    {topic.status === "locked" && <Badge variant="outline" className="text-muted-foreground font-semibold"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>}
+                    <div className="text-sm font-bold text-primary mb-1 uppercase tracking-wider">Up Next</div>
+                    <h2 className="text-2xl font-bold mb-2">{nextVideo.title}</h2>
+                    <p className="text-muted-foreground">{nextVideo.subtopicTitle} • {nextVideo.duration}</p>
                   </div>
                 </div>
-
-                <div className="flex flex-col">
-                  {topic.subtopics.map((subtopic) => (
-                    <div key={subtopic.id} className="border-b border-border/50 last:border-0">
-                      <div className="bg-muted/10 px-5 md:px-6 py-3 text-sm font-bold text-muted-foreground uppercase tracking-wide border-b border-border/50">
-                        {subtopic.title}
-                      </div>
-
-                      <div className="flex flex-col">
-                        {subtopic.videos.map((video) => (
-                          <Link 
-                            key={video.id} 
-                            href={`/lessons/${video.id}`}
-                            className={`flex items-center justify-between p-4 px-5 md:px-6 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${topic.status === "locked" ? "opacity-60 pointer-events-none" : ""}`}
-                          >
-                            <div className="flex items-center gap-4">
-                              {video.completed ? (
-                                <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                              ) : (
-                                <PlayCircle className="w-5 h-5 text-muted-foreground shrink-0" />
-                              )}
-                              <span className={`font-medium ${video.completed ? "text-muted-foreground" : "text-foreground"}`}>
-                                {video.title}
-                              </span>
-                            </div>
-                            <div className="text-sm text-muted-foreground">
-                              {video.duration}
-                            </div>
-                          </Link>
-                        ))}
-                      </div>
-
-                    </div>
-                  ))}
-                </div>
-
+                <Link href={`/lessons/${nextVideo.id}`} className="w-full md:w-auto shrink-0">
+                  <Button size="lg" className="w-full rounded-full text-md h-12 px-8 shadow-md">
+                    Resume Lesson
+                  </Button>
+                </Link>
               </div>
-            );
-          })}
-        </div>
-      </div>
+            </Card>
+          )}
 
+          <div>
+            <h2 className="text-2xl font-bold mb-6">Topics</h2>
+            <div className="flex flex-col gap-6">
+              {curriculum.map((topic) => {
+                const totalVideos = topic.subtopics.reduce((acc, sub) => acc + sub.videos.length, 0);
+
+                return (
+                  <div key={topic.id} className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden">
+                    <div className="p-5 md:p-6 bg-muted/30 border-b border-border flex flex-col md:flex-row md:items-center justify-between gap-4">
+                      <div>
+                        <h3 className="text-xl font-bold mb-1">{topic.title}</h3>
+                        <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                          <span className="flex items-center gap-1"><Clock className="w-4 h-4" /> {topic.totalDuration}</span>
+                          <span>•</span>
+                          <span className="flex items-center gap-1"><FolderTree className="w-4 h-4" /> {topic.subtopics.length} Subtopics</span>
+                          <span>•</span>
+                          <span>{totalVideos} Videos</span>
+                        </div>
+                      </div>
+                      <div>
+                        {topic.status === "completed" && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/20 border-transparent font-semibold">Completed</Badge>}
+                        {topic.status === "active" && <Badge className="bg-primary text-primary-foreground hover:bg-primary/90 font-semibold">In Progress</Badge>}
+                        {topic.status === "locked" && <Badge variant="outline" className="text-muted-foreground font-semibold"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>}
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                      {topic.subtopics.map((subtopic) => (
+                        <div key={subtopic.id} className="border-b border-border/50 last:border-0">
+                          <div className="bg-muted/10 px-5 md:px-6 py-3 text-sm font-bold text-muted-foreground uppercase tracking-wide border-b border-border/50">
+                            {subtopic.title}
+                          </div>
+
+                          <div className="flex flex-col">
+                            {subtopic.videos.map((video) => (
+                              <Link 
+                                key={video.id} 
+                                href={`/lessons/${video.id}`}
+                                className={`flex items-center justify-between p-4 px-5 md:px-6 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${topic.status === "locked" ? "opacity-60 pointer-events-none" : ""}`}
+                              >
+                                <div className="flex items-center gap-4">
+                                  {video.completed ? (
+                                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
+                                  ) : (
+                                    <PlayCircle className="w-5 h-5 text-muted-foreground shrink-0" />
+                                  )}
+                                  <span className={`font-medium ${video.completed ? "text-muted-foreground" : "text-foreground"}`}>
+                                    {video.title}
+                                  </span>
+                                </div>
+                                <div className="text-sm text-muted-foreground">
+                                  {video.duration}
+                                </div>
+                              </Link>
+                            ))}
+                          </div>
+
+                        </div>
+                      ))}
+                    </div>
+
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        </div>
+
+        {/* RIGHT COLUMN: Class-Specific Announcements Feed */}
+        <div className="w-full lg:w-80 xl:w-96 shrink-0 space-y-6">
+          <div className="flex items-center justify-between">
+            <h2 className="text-xl font-bold">Class Updates</h2>
+            <Badge variant="secondary" className="bg-primary/10 text-primary font-semibold">
+              {classAnnouncements.length} New
+            </Badge>
+          </div>
+          
+          <Card className="border border-border shadow-sm bg-card overflow-hidden">
+            <div className="flex flex-col">
+              {classAnnouncements.map((ann) => {
+                const Icon = ann.icon;
+                const isImportant = ann.type === "important";
+
+                return (
+                  <div 
+                    key={ann.id} 
+                    className={`p-5 border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors relative ${isImportant ? 'bg-primary/5' : ''}`}
+                  >
+                    {isImportant && (
+                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+                    )}
+                    
+                    <div className="flex gap-4">
+                      <div className={`mt-0.5 shrink-0 ${isImportant ? 'text-primary' : 'text-muted-foreground'}`}>
+                        <Icon className="w-5 h-5" />
+                      </div>
+                      <div className="flex flex-col gap-1.5">
+                        <div className="flex flex-col gap-0.5">
+                          <h3 className={`font-semibold leading-tight ${isImportant ? 'text-primary' : 'text-foreground'}`}>
+                            {ann.title}
+                          </h3>
+                          <span className="text-xs font-medium text-muted-foreground">
+                            {ann.date}
+                          </span>
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-relaxed mt-1">
+                          {ann.content}
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </Card>
+        </div>
+
+      </div>
     </div>
   );
 }
