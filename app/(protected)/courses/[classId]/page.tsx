@@ -13,7 +13,9 @@ import {
   MessageCircle,
   Paperclip,
   FileText,
-  Download
+  Download,
+  ExternalLink,
+  Image as ImageIcon
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -46,16 +48,24 @@ const classAnnouncements = [
     date: "4 hours ago",
     type: "important",
     comments: 3,
-    icon: Bell
+    icon: Bell,
+    link: {
+      url: "#",
+      title: "Start Practice Quiz: Functions & Transformations"
+    }
   },
   {
     id: "ann-math-2",
     title: "Correction in Video 2.2",
-    content: "At timestamp 14:20 in the Translations video, the x-axis shift should be to the LEFT, not the right. A note has been added to the video player, but please update your written notes if you copied that example down!",
+    content: "At timestamp 14:20 in the Translations video, the x-axis shift should be to the LEFT, not the right. A note has been added to the video player, but please update your written notes if you copied that example down! See the attached Desmos graph for the correct visual.",
     date: "2 days ago",
     type: "standard",
     comments: 0,
-    icon: Megaphone
+    icon: Megaphone,
+    image: {
+      url: "placeholder",
+      alt: "Desmos Graph showing leftward shift"
+    }
   },
   {
     id: "ann-math-3",
@@ -303,6 +313,24 @@ export default async function ClassCurriculumPage({
                     {ann.content}
                   </p>
 
+                  {ann.link && (
+                    <Link href={ann.link.url} className="mt-4 flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors group">
+                      <div className="p-2 bg-background rounded-md text-primary group-hover:bg-primary/10 transition-colors shadow-sm">
+                        <ExternalLink className="w-4 h-4" />
+                      </div>
+                      <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex-1 truncate">
+                        {ann.link.title}
+                      </span>
+                    </Link>
+                  )}
+
+                  {ann.image && (
+                    <div className="mt-4 rounded-xl border border-border bg-muted/20 flex flex-col items-center justify-center aspect-video overflow-hidden">
+                      <ImageIcon className="w-10 h-10 text-muted-foreground/30 mb-2" />
+                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{ann.image.alt}</span>
+                    </div>
+                  )}
+
                   <div className="flex items-center gap-6 mt-6 pt-4 border-t border-border/50 text-sm font-medium text-muted-foreground">
                     <button className="flex items-center gap-2 hover:text-primary transition-colors">
                       <MessageCircle className="w-4 h-4" /> 
@@ -355,6 +383,7 @@ export default async function ClassCurriculumPage({
 
                   <AccordionContent className="p-0 border-none">
                     <div className="flex flex-col">
+                      
                       {topic.resources && topic.resources.length > 0 && (
                         <div className="p-4 bg-primary/5 border-b border-border/50 flex flex-col gap-2">
                           <div className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">
