@@ -195,10 +195,10 @@ export default async function ClassCurriculumPage({
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-8">
       <div>
-        <Link href="/courses">
+        <Link href="/dashboard">
           <Button variant="ghost" size="sm" className="mb-6 gap-2 text-muted-foreground hover:text-foreground -ml-2">
             <ArrowLeft className="w-4 h-4" />
-            Back to My Classes
+            Back to Dashboard
           </Button>
         </Link>
 
@@ -244,8 +244,9 @@ export default async function ClassCurriculumPage({
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
-        <div className="lg:col-span-8 space-y-6">
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+        
+        <div className="xl:col-span-8 space-y-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-bold">Class Updates</h2>
             <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">Filter</Button>
@@ -295,7 +296,7 @@ export default async function ClassCurriculumPage({
           </div>
         </div>
 
-        <div className="lg:col-span-4 space-y-6 sticky top-24">
+        <div className="xl:col-span-4 space-y-6 sticky top-24">
           <h2 className="text-2xl font-bold mb-2">Curriculum</h2>
           
           <Accordion type="single" collapsible className="w-full flex flex-col gap-4">
@@ -319,6 +320,7 @@ export default async function ClassCurriculumPage({
                           {topic.status === "locked" && <Lock className="w-4 h-4 text-muted-foreground" />}
                         </div>
                       </div>
+                      
                       <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground font-medium">
                         <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3" /> {topic.totalDuration}</span>
                         <span className="flex items-center gap-1 shrink-0"><FolderTree className="w-3 h-3" /> {topic.subtopics.length}</span>
