@@ -3,6 +3,8 @@ import { ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
+const mockClassId = "pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab";
+
 const curriculum = [
   {
     id: "top-d290f1ee-6c54-4b01-90e6-d701748f0851",
@@ -81,7 +83,7 @@ export default async function LessonLayout({
     <div className="flex flex-col h-full bg-background">
       <header className="h-16 border-b flex items-center justify-between px-4 md:px-8 shrink-0 bg-card">
         <div className="flex items-center gap-4">
-          <Link href="/courses">
+          <Link href={`/courses/${mockClassId}`}>
             <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden md:inline">Back to Curriculum</span>
@@ -127,7 +129,7 @@ export default async function LessonLayout({
                     return (
                       <Link 
                         key={video.id} 
-                        href={`/courses/${video.id}`}
+                        href={`/lessons/${video.id}`}
                         className={`flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors ${isActive ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}`}
                       >
                         {video.completed ? (
