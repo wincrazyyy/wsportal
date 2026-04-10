@@ -14,12 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
 
-const platformTutor = {
-  name: "Winson Siu",
-  initials: "WS",
-  role: "Lead Instructor"
-};
-
 const enrolledClasses = [
   {
     id: "pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab",
@@ -42,30 +36,45 @@ const enrolledClasses = [
 const announcements = [
   {
     id: "ann-1",
+    courseCode: "AA HL",
     title: "Mock Exam Solutions Uploaded",
     content: "I've just uploaded the video walkthroughs for the May 2023 TZ2 Past Paper in the Document Vault. Make sure to review Q9 and Q11, as the mark scheme is quite particular about the working out for those integration steps.",
     date: "2 hours ago",
     type: "important",
     comments: 8,
-    icon: Bell
+    icon: Bell,
+    author: {
+      name: "Winson Siu",
+      initials: "WS"
+    }
   },
   {
     id: "ann-2",
+    courseCode: "PHYS HL",
     title: "Live Q&A Session Tomorrow",
-    content: "We will be running a live Zoom session covering Calculus Kinematics tomorrow at 5 PM GMT. Link will be posted here 10 mins before. Bring your toughest questions!",
+    content: "We will be running a live Zoom session covering Kinematics tomorrow at 5 PM GMT. Link will be posted here 10 mins before. Bring your toughest questions!",
     date: "1 day ago",
     type: "event",
     comments: 24,
-    icon: CalendarDays
+    icon: CalendarDays,
+    author: {
+      name: "Dr. Sarah Jenkins",
+      initials: "SJ"
+    }
   },
   {
     id: "ann-3",
+    courseCode: "AA HL",
     title: "New Module 5 Videos",
     content: "Topic 5.1 (Differentiation Rules) is now fully unlocked for all AA HL students. Let me know if you have questions in the lesson discussions.",
     date: "3 days ago",
     type: "standard",
     comments: 2,
-    icon: Megaphone
+    icon: Megaphone,
+    author: {
+      name: "Winson Siu",
+      initials: "WS"
+    }
   }
 ];
 
@@ -76,7 +85,7 @@ export default function CoursesHubPage() {
       <div className="mb-8">
         <h1 className="text-3xl font-bold tracking-tight mb-2">Student Dashboard</h1>
         <p className="text-muted-foreground">
-          Welcome back. Here is your curriculum and the latest global updates from your tutor.
+          Welcome back. Here is your curriculum and the latest global updates from your tutors.
         </p>
       </div>
 
@@ -97,18 +106,24 @@ export default function CoursesHubPage() {
                   key={ann.id} 
                   className={`p-6 bg-card border shadow-sm transition-all hover:shadow-md ${isImportant ? 'border-primary/30 ring-1 ring-primary/10' : 'border-border'}`}
                 >
-                  <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-start justify-between mb-4">
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                        {platformTutor.initials}
+                        {ann.author.initials}
                       </div>
                       <div>
-                        <div className="font-bold text-sm text-foreground">{platformTutor.name}</div>
-                        <div className="text-xs text-muted-foreground font-medium">{ann.date}</div>
+                        <div className="font-bold text-sm text-foreground flex items-center gap-2">
+                          {ann.author.name}
+                          <span className="text-[10px] uppercase tracking-wider font-bold text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
+                            {ann.courseCode}
+                          </span>
+                        </div>
+                        <div className="text-xs text-muted-foreground font-medium mt-0.5">{ann.date}</div>
                       </div>
                     </div>
-                    {isImportant && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 border-transparent pointer-events-none">Important</Badge>}
+                    {isImportant && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 border-transparent pointer-events-none shrink-0">Important</Badge>}
                   </div>
+                  
                   <h3 className="text-xl font-bold mb-3">{ann.title}</h3>
                   <p className="text-muted-foreground leading-relaxed">
                     {ann.content}
