@@ -9,7 +9,9 @@ import {
   ArrowLeft,
   Megaphone,
   Bell,
-  CalendarDays
+  CalendarDays,
+  MessageCircle,
+  Paperclip
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -28,29 +30,38 @@ const currentClass = {
   title: "IBDP Math AA HL Mastery System"
 };
 
+const classTutor = {
+  name: "Winson Siu",
+  initials: "WS",
+  role: "Lead Instructor"
+};
+
 const classAnnouncements = [
   {
     id: "ann-math-1",
     title: "Topic 2 Practice Quiz Live",
-    content: "I have just published a 15-question practice quiz for Functions. I highly recommend completing it before moving on to Calculus.",
+    content: "I have just published a 15-question practice quiz for Functions. I highly recommend completing it before moving on to Calculus. Focus heavily on the composite function questions at the end, as those reflect the Section B style questions you will see on Paper 1.",
     date: "4 hours ago",
     type: "important",
+    comments: 3,
     icon: Bell
   },
   {
     id: "ann-math-2",
     title: "Correction in Video 2.2",
-    content: "At timestamp 14:20 in the Translations video, the x-axis shift should be to the LEFT, not the right. A note has been added to the video player.",
+    content: "At timestamp 14:20 in the Translations video, the x-axis shift should be to the LEFT, not the right. A note has been added to the video player, but please update your written notes if you copied that example down!",
     date: "2 days ago",
     type: "standard",
+    comments: 0,
     icon: Megaphone
   },
   {
     id: "ann-math-3",
     title: "Calculus Bootcamp Next Week",
-    content: "We will be running a live deep-dive into Integration by Parts next Thursday. Check your email for the Zoom link.",
+    content: "We will be running a live deep-dive into Integration by Parts next Thursday. Check your email for the Zoom link. I've attached the prerequisite worksheet below—please complete it beforehand so we can jump straight into the hard problems.",
     date: "5 days ago",
     type: "event",
+    comments: 12,
     icon: CalendarDays
   }
 ];
@@ -194,13 +205,10 @@ export default async function ClassCurriculumPage({
         <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
           <div>
             <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold tracking-tight">Curriculum</h1>
-              <Badge variant="outline" className="text-primary border-primary/30 bg-primary/5 uppercase tracking-wider font-bold">
-                Class: {currentClass.code}
-              </Badge>
+              <h1 className="text-3xl font-bold tracking-tight">{currentClass.title}</h1>
             </div>
             <p className="text-muted-foreground">
-              {currentClass.title}
+              Your centralized dashboard for curriculum, progress, and tutor updates.
             </p>
           </div>
           <div className="w-full md:w-72 bg-card p-4 rounded-xl border border-border shadow-sm">
@@ -236,57 +244,59 @@ export default async function ClassCurriculumPage({
         </Card>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        <div className="lg:col-span-5 xl:col-span-5 space-y-6">
-          <div className="flex items-center justify-between">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
+        <div className="lg:col-span-8 space-y-6">
+          <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-bold">Class Updates</h2>
-            <Badge variant="secondary" className="bg-primary/10 text-primary font-semibold">
-              {classAnnouncements.length} New
-            </Badge>
+            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">Filter</Button>
           </div>
           
-          <Card className="border border-border shadow-sm bg-card overflow-hidden">
-            <div className="flex flex-col">
-              {classAnnouncements.map((ann) => {
-                const Icon = ann.icon;
-                const isImportant = ann.type === "important";
+          <div className="flex flex-col gap-6">
+            {classAnnouncements.map((ann) => {
+              const isImportant = ann.type === "important";
 
-                return (
-                  <div 
-                    key={ann.id} 
-                    className={`p-5 border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors relative ${isImportant ? 'bg-primary/5' : ''}`}
-                  >
-                    {isImportant && (
-                      <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
-                    )}
-                    
-                    <div className="flex gap-4">
-                      <div className={`mt-0.5 shrink-0 ${isImportant ? 'text-primary' : 'text-muted-foreground'}`}>
-                        <Icon className="w-5 h-5" />
+              return (
+                <Card 
+                  key={ann.id} 
+                  className={`p-6 bg-card border shadow-sm transition-all hover:shadow-md ${isImportant ? 'border-primary/30 ring-1 ring-primary/10' : 'border-border'}`}
+                >
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
+                        {classTutor.initials}
                       </div>
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex flex-col gap-0.5">
-                          <h3 className={`font-semibold leading-tight ${isImportant ? 'text-primary' : 'text-foreground'}`}>
-                            {ann.title}
-                          </h3>
-                          <span className="text-xs font-medium text-muted-foreground">
-                            {ann.date}
-                          </span>
-                        </div>
-                        <p className="text-sm text-muted-foreground leading-relaxed mt-1">
-                          {ann.content}
-                        </p>
+                      <div>
+                        <div className="font-bold text-sm text-foreground">{classTutor.name}</div>
+                        <div className="text-xs text-muted-foreground font-medium">{ann.date}</div>
                       </div>
                     </div>
+                    {isImportant && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 border-transparent pointer-events-none">Important</Badge>}
                   </div>
-                );
-              })}
-            </div>
-          </Card>
+                  
+                  <h3 className="text-xl font-bold mb-3">{ann.title}</h3>
+                  <p className="text-muted-foreground leading-relaxed">
+                    {ann.content}
+                  </p>
+
+                  <div className="flex items-center gap-6 mt-6 pt-4 border-t border-border/50 text-sm font-medium text-muted-foreground">
+                    <button className="flex items-center gap-2 hover:text-primary transition-colors">
+                      <MessageCircle className="w-4 h-4" /> 
+                      {ann.comments > 0 ? `${ann.comments} Comments` : 'Discuss'}
+                    </button>
+                    {ann.type === "event" && (
+                      <button className="flex items-center gap-2 hover:text-primary transition-colors">
+                        <Paperclip className="w-4 h-4" /> 1 Attachment
+                      </button>
+                    )}
+                  </div>
+                </Card>
+              );
+            })}
+          </div>
         </div>
 
-        <div className="lg:col-span-7 xl:col-span-7 space-y-6">
-          <h2 className="text-2xl font-bold">Topics</h2>
+        <div className="lg:col-span-4 space-y-6 sticky top-24">
+          <h2 className="text-2xl font-bold mb-2">Curriculum</h2>
           
           <Accordion type="single" collapsible className="w-full flex flex-col gap-4">
             {curriculum.map((topic) => {
@@ -296,24 +306,23 @@ export default async function ClassCurriculumPage({
                 <AccordionItem 
                   key={topic.id} 
                   value={topic.id} 
-                  className="bg-card rounded-2xl border border-border shadow-sm overflow-hidden"
+                  className="bg-card rounded-xl border border-border shadow-sm overflow-hidden relative"
                 >
-                  <AccordionTrigger className="p-5 md:p-6 bg-muted/30 hover:bg-muted/50 transition-colors border-b border-border hover:no-underline [&[data-state=open]]:bg-muted/50">
-                    <div className="flex flex-col xl:flex-row xl:items-center justify-between gap-4 w-full pr-4 text-left">
-                      <div>
-                        <h3 className="text-xl font-bold mb-1">{topic.title}</h3>
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-muted-foreground font-normal">
-                          <span className="flex items-center gap-1 shrink-0"><Clock className="w-4 h-4" /> {topic.totalDuration}</span>
-                          <span className="hidden sm:inline">•</span>
-                          <span className="flex items-center gap-1 shrink-0"><FolderTree className="w-4 h-4" /> {topic.subtopics.length} Subtopics</span>
-                          <span className="hidden sm:inline">•</span>
-                          <span className="shrink-0">{totalVideos} Videos</span>
+                  <div className={`absolute top-0 left-0 w-full h-1 ${topic.status === 'active' ? 'bg-primary' : 'bg-muted'}`}></div>
+                  
+                  <AccordionTrigger className="p-5 md:p-6 bg-muted/10 hover:bg-muted/40 transition-colors border-b border-border hover:no-underline [&[data-state=open]]:bg-muted/40 text-left pt-6">
+                    <div className="flex flex-col gap-3 w-full pr-2">
+                      <div className="flex items-start justify-between gap-4">
+                        <h3 className="text-base font-bold leading-tight">{topic.title}</h3>
+                        <div className="shrink-0 mt-0.5">
+                          {topic.status === "completed" && <CheckCircle2 className="w-4 h-4 text-primary" />}
+                          {topic.status === "locked" && <Lock className="w-4 h-4 text-muted-foreground" />}
                         </div>
                       </div>
-                      <div className="shrink-0">
-                        {topic.status === "completed" && <Badge variant="secondary" className="bg-primary/10 text-primary border-transparent font-semibold pointer-events-none">Completed</Badge>}
-                        {topic.status === "active" && <Badge className="bg-primary text-primary-foreground font-semibold pointer-events-none">In Progress</Badge>}
-                        {topic.status === "locked" && <Badge variant="outline" className="text-muted-foreground font-semibold pointer-events-none"><Lock className="w-3 h-3 mr-1" /> Locked</Badge>}
+                      <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground font-medium">
+                        <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3" /> {topic.totalDuration}</span>
+                        <span className="flex items-center gap-1 shrink-0"><FolderTree className="w-3 h-3" /> {topic.subtopics.length}</span>
+                        <span className="shrink-0">{totalVideos} Videos</span>
                       </div>
                     </div>
                   </AccordionTrigger>
@@ -322,7 +331,7 @@ export default async function ClassCurriculumPage({
                     <div className="flex flex-col">
                       {topic.subtopics.map((subtopic) => (
                         <div key={subtopic.id} className="border-b border-border/50 last:border-0">
-                          <div className="bg-muted/10 px-5 md:px-6 py-3 text-sm font-bold text-muted-foreground uppercase tracking-wide border-b border-border/50">
+                          <div className="bg-muted/20 px-4 py-2.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/50">
                             {subtopic.title}
                           </div>
 
@@ -331,25 +340,26 @@ export default async function ClassCurriculumPage({
                               <Link 
                                 key={video.id} 
                                 href={`/lessons/${video.id}`}
-                                className={`flex items-center justify-between p-4 px-5 md:px-6 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${topic.status === "locked" ? "opacity-60 pointer-events-none" : ""}`}
+                                className={`flex flex-col gap-1.5 p-4 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${topic.status === "locked" ? "opacity-60 pointer-events-none" : ""}`}
                               >
-                                <div className="flex items-center gap-4">
-                                  {video.completed ? (
-                                    <CheckCircle2 className="w-5 h-5 text-primary shrink-0" />
-                                  ) : (
-                                    <PlayCircle className="w-5 h-5 text-muted-foreground shrink-0" />
-                                  )}
-                                  <span className={`font-medium text-[15px] ${video.completed ? "text-muted-foreground" : "text-foreground"}`}>
+                                <div className="flex items-start gap-3">
+                                  <div className="mt-0.5">
+                                    {video.completed ? (
+                                      <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
+                                    ) : (
+                                      <PlayCircle className="w-4 h-4 text-muted-foreground shrink-0" />
+                                    )}
+                                  </div>
+                                  <span className={`font-medium text-sm leading-tight ${video.completed ? "text-muted-foreground" : "text-foreground"}`}>
                                     {video.title}
                                   </span>
                                 </div>
-                                <div className="text-sm text-muted-foreground font-medium shrink-0 ml-4">
+                                <div className="text-xs text-muted-foreground font-medium ml-7">
                                   {video.duration}
                                 </div>
                               </Link>
                             ))}
                           </div>
-
                         </div>
                       ))}
                     </div>
