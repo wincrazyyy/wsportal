@@ -11,7 +11,9 @@ import {
   Bell,
   CalendarDays,
   MessageCircle,
-  Paperclip
+  Paperclip,
+  FileText,
+  Download
 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -72,10 +74,17 @@ const curriculum = [
     title: "Topic 1: Number & Algebra",
     totalDuration: "4h 15m",
     status: "completed",
+    resources: [
+      { id: "res-t1-1", title: "Topic 1 Complete Study Guide", size: "4.2 MB" },
+      { id: "res-t1-2", title: "Algebra Formula Cheat Sheet", size: "1.1 MB" }
+    ],
     subtopics: [
       {
         id: "sub-1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
         title: "1.1 Sequences and Series",
+        resources: [
+          { id: "res-s1-1", title: "1.1 Practice Problem Set", size: "845 KB" }
+        ],
         videos: [
           { id: "les-c64a5d8b-1a2b-3c4d-5e6f-7a8b9c0d1e2f", title: "Arithmetic Sequences & Series", duration: "25m", completed: true },
           { id: "les-b31d9e7c-8f9a-0b1c-2d3e-4f5a6b7c8d9e", title: "Geometric Sequences & Series", duration: "30m", completed: true },
@@ -84,6 +93,7 @@ const curriculum = [
       {
         id: "sub-f1e2d3c4-b5a6-9f8e-7d6c-5b4a3f2e1d0c",
         title: "1.2 Exponents and Logarithms",
+        resources: [],
         videos: [
           { id: "les-7a8b9c0d-1e2f-3a4b-5c6d-e7f8a9b0c1d2", title: "Laws of Exponents", duration: "20m", completed: true },
           { id: "les-3a4b5c6d-7e8f-9a0b-1c2d-e3f4a5b6c7d8", title: "Logarithmic Equations", duration: "35m", completed: true },
@@ -96,10 +106,16 @@ const curriculum = [
     title: "Topic 2: Functions",
     totalDuration: "5h 30m",
     status: "active",
+    resources: [
+      { id: "res-t2-1", title: "Functions Core Concepts Summary", size: "3.5 MB" }
+    ],
     subtopics: [
       {
         id: "sub-5c6d7e8f-9a0b-1c2d-3e4f-a5b6c7d8e9f0",
         title: "2.1 Linear & Quadratic Functions",
+        resources: [
+          { id: "res-s2-1", title: "Completing the Square Worksheet", size: "500 KB" }
+        ],
         videos: [
           { id: "les-9a0b1c2d-3e4f-5a6b-7c8d-e9f0a1b2c3d4", title: "Domain, Range & Composites", duration: "40m", completed: true },
           { id: "les-2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e", title: "Inverse Functions", duration: "35m", completed: true },
@@ -108,6 +124,7 @@ const curriculum = [
       {
         id: "sub-8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
         title: "2.2 Transformations",
+        resources: [],
         videos: [
           { id: "les-9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4", title: "Translations & Dilations", duration: "45m", completed: false }, 
           { id: "les-4b5c6d7e-8f9a-0b1c-2d3e-4f5a6b7c8d9e", title: "Absolute Value Transformations", duration: "30m", completed: false },
@@ -120,10 +137,12 @@ const curriculum = [
     title: "Topic 3: Geometry & Trigonometry",
     totalDuration: "6h 00m",
     status: "locked",
+    resources: [],
     subtopics: [
       {
         id: "sub-1c2d3e4f-5a6b-7c8d-9e0f-1a2b3c4d5e6f",
         title: "3.1 3D Geometry",
+        resources: [],
         videos: [
           { id: "les-7c8d9e0f-1a2b-3c4d-5e6f-7a8b9c0d1e2f", title: "Volume & Surface Area", duration: "30m", completed: false },
           { id: "les-3d4e5f6a-7b8c-9d0e-1f2a-3b4c5d6e7f8a", title: "Angles in 3D Space", duration: "40m", completed: false },
@@ -132,6 +151,7 @@ const curriculum = [
       {
         id: "sub-9e0f1a2b-3c4d-5e6f-7a8b-9c0d1e2f3a4b",
         title: "3.2 Trigonometric Functions",
+        resources: [],
         videos: [
           { id: "les-5f6a7b8c-9d0e-1f2a-3b4c-5d6e7f8a9b0c", title: "The Unit Circle", duration: "35m", completed: false },
         ]
@@ -143,10 +163,12 @@ const curriculum = [
     title: "Topic 4: Statistics & Probability",
     totalDuration: "4h 45m",
     status: "locked",
+    resources: [],
     subtopics: [
       {
         id: "sub-0a1b2c3d-4e5f-6a7b-8c9d-0e1f2a3b4c5d",
         title: "4.1 Descriptive Statistics",
+        resources: [],
         videos: [
           { id: "les-6b7c8d9e-0f1a-2b3c-4d5e-6f7a8b9c0d1e", title: "Mean, Variance & Standard Deviation", duration: "40m", completed: false },
         ]
@@ -158,10 +180,12 @@ const curriculum = [
     title: "Topic 5: Calculus",
     totalDuration: "8h 20m",
     status: "locked",
+    resources: [],
     subtopics: [
       {
         id: "sub-8c9d0e1f-2a3b-4c5d-6e7f-8a9b0c1d2e3f",
         title: "5.1 Differentiation",
+        resources: [],
         videos: [
           { id: "les-2d3e4f5a-6b7c-8d9e-0f1a-2b3c4d5e6f7a", title: "Limits & First Principles", duration: "45m", completed: false },
           { id: "les-8e9f0a1b-2c3d-4e5f-6a7b-8c9d0e1f2a3b", title: "Chain, Product & Quotient Rules", duration: "50m", completed: false },
@@ -246,7 +270,7 @@ export default async function ClassCurriculumPage({
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
         
-        <div className="xl:col-span-8 space-y-6">
+        <div className="xl:col-span-7 space-y-6">
           <div className="flex items-center justify-between mb-2">
             <h2 className="text-2xl font-bold">Class Updates</h2>
             <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">Filter</Button>
@@ -296,7 +320,7 @@ export default async function ClassCurriculumPage({
           </div>
         </div>
 
-        <div className="xl:col-span-4 space-y-6 sticky top-24">
+        <div className="xl:col-span-5 space-y-6 sticky top-24">
           <h2 className="text-2xl font-bold mb-2">Curriculum</h2>
           
           <Accordion type="single" collapsible className="w-full flex flex-col gap-4">
@@ -331,13 +355,54 @@ export default async function ClassCurriculumPage({
 
                   <AccordionContent className="p-0 border-none">
                     <div className="flex flex-col">
+                      {topic.resources && topic.resources.length > 0 && (
+                        <div className="p-4 bg-primary/5 border-b border-border/50 flex flex-col gap-2">
+                          <div className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">
+                            Topic Resources
+                          </div>
+                          {topic.resources.map(res => (
+                            <Link key={res.id} href="#" className="flex items-center justify-between p-3 bg-card border border-primary/20 rounded-lg hover:border-primary/50 hover:shadow-sm transition-all group">
+                              <div className="flex items-center gap-3">
+                                <div className="p-2 bg-primary/10 rounded-md text-primary group-hover:bg-primary/20 transition-colors">
+                                  <FileText className="w-4 h-4" />
+                                </div>
+                                <div className="flex flex-col">
+                                  <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+                                    {res.title}
+                                  </span>
+                                  <span className="text-xs text-muted-foreground mt-0.5">{res.size} • PDF</span>
+                                </div>
+                              </div>
+                              <Download className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-primary transition-all mr-2" />
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+
                       {topic.subtopics.map((subtopic) => (
                         <div key={subtopic.id} className="border-b border-border/50 last:border-0">
+                          
                           <div className="bg-muted/20 px-4 py-2.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/50">
                             {subtopic.title}
                           </div>
 
                           <div className="flex flex-col">
+                            {subtopic.resources && subtopic.resources.length > 0 && (
+                              <div className="flex flex-col border-b border-border/50 bg-muted/5">
+                                {subtopic.resources.map(res => (
+                                  <Link key={res.id} href="#" className="flex items-center gap-3 p-3 px-5 hover:bg-muted/50 transition-colors group">
+                                    <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                                    <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                                      {res.title}
+                                    </span>
+                                    <span className="text-[10px] text-muted-foreground ml-auto border border-border px-1.5 py-0.5 rounded bg-background shrink-0">
+                                      {res.size}
+                                    </span>
+                                  </Link>
+                                ))}
+                              </div>
+                            )}
+
                             {subtopic.videos.map((video) => (
                               <Link 
                                 key={video.id} 
