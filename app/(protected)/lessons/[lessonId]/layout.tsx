@@ -3,7 +3,6 @@ import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
-// Hardcoded for mock purposes.
 const mockClassId = "pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab";
 
 export default async function LessonLayout({
@@ -17,8 +16,6 @@ export default async function LessonLayout({
 
   return (
     <div className="flex flex-col h-screen bg-background">
-      
-      {/* Top Navigation Bar */}
       <header className="h-16 border-b flex items-center justify-between px-4 md:px-6 shrink-0 bg-card z-50">
         <div className="flex items-center gap-4 overflow-hidden">
           <Link href={`/courses/${mockClassId}`} className="shrink-0">
@@ -42,7 +39,6 @@ export default async function LessonLayout({
         </div>
       </header>
 
-      {/* Main Content Area (Where the Video and Sidebar render) */}
       <div className="flex-1 overflow-hidden">
         {children}
       </div>
