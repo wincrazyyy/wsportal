@@ -1,12 +1,17 @@
 "use client";
 
+import Link from "next/link";
 import { 
   ChevronLeft, 
   ChevronRight, 
   PlayCircle, 
   FileText, 
   MessageSquare, 
-  CheckCircle2
+  CheckCircle2,
+  FolderTree,
+  Download,
+  Lock,
+  Clock
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -15,67 +20,143 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 interface LessonPlayerClientProps {
   lessonId: string;
   lessonData: any;
+  curriculum: any; 
+  activeTopic: any;
 }
 
-export function LessonPlayerClient({ lessonId, lessonData }: LessonPlayerClientProps) {
+export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTopic }: LessonPlayerClientProps) {
+  
   return (
-    <div className="flex-1 overflow-y-auto p-4 md:p-8 bg-background h-full">
-      <div className="w-full aspect-video bg-black rounded-2xl shadow-2xl overflow-hidden relative group border-4 border-card">
-        <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-black/60 to-transparent text-white">
-          <PlayCircle className="w-20 h-20 text-primary/80 group-hover:text-primary transition-all group-hover:scale-110 cursor-pointer" />
-          <p className="mt-4 font-medium text-lg opacity-80">AWS Secure Stream Initialization...</p>
-          <p className="mt-2 text-xs opacity-40 font-mono">ID: {lessonId}</p>
+    <div className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden bg-background">
+      <div className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 flex flex-col">
+        <div className="w-full aspect-video bg-black rounded-2xl shadow-2xl overflow-hidden relative group border-4 border-card shrink-0">
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-t from-black/60 to-transparent text-white">
+            <PlayCircle className="w-20 h-20 text-primary/80 group-hover:text-primary transition-all group-hover:scale-110 cursor-pointer" />
+            <p className="mt-4 font-medium text-lg opacity-80">AWS Secure Stream Initialization...</p>
+            <p className="mt-2 text-xs opacity-40 font-mono">ID: {lessonId}</p>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-between mt-6 shrink-0">
+          <Button variant="outline" className="rounded-full gap-2 group">
+            <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
+            <span className="hidden sm:inline">Previous</span>
+          </Button>
+          
+          <div className="flex items-center gap-2">
+             <Button className="rounded-full gap-2 px-6 sm:px-8 font-bold shadow-lg shadow-primary/20">
+               <span className="hidden sm:inline">Mark as Complete</span>
+               <span className="sm:hidden">Complete</span>
+               <CheckCircle2 className="w-4 h-4" />
+             </Button>
+          </div>
+          
+          <Button variant="outline" className="rounded-full gap-2 group">
+            <span className="hidden sm:inline">Next</span>
+            <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+          </Button>
         </div>
       </div>
 
-      <div className="flex items-center justify-between mt-6 mb-10">
-        <Button variant="outline" className="rounded-full gap-2 group">
-          <ChevronLeft className="w-4 h-4 group-hover:-translate-x-1 transition-transform" />
-          Previous
-        </Button>
-        <div className="flex items-center gap-2">
-           <Button className="rounded-full gap-2 px-8 font-bold shadow-lg shadow-primary/20">
-             Mark as Complete
-             <CheckCircle2 className="w-4 h-4" />
-           </Button>
-        </div>
-        <Button variant="outline" className="rounded-full gap-2 group">
-          Next
-          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-        </Button>
-      </div>
+      <aside className="w-full lg:w-[400px] xl:w-[450px] border-l bg-card flex flex-col shrink-0 h-full">
+        <Tabs defaultValue="curriculum" className="w-full flex flex-col h-full">
+          
+          <div className="p-4 border-b border-border bg-card shrink-0">
+            <TabsList className="w-full grid grid-cols-4 bg-muted/50 p-1">
+              <TabsTrigger value="curriculum" className="text-[10px] sm:text-xs"><FolderTree className="w-3.5 h-3.5 mr-1.5 hidden sm:block" /> Course</TabsTrigger>
+              <TabsTrigger value="overview" className="text-[10px] sm:text-xs"><FileText className="w-3.5 h-3.5 mr-1.5 hidden sm:block" /> Info</TabsTrigger>
+              <TabsTrigger value="resources" className="text-[10px] sm:text-xs"><Download className="w-3.5 h-3.5 mr-1.5 hidden sm:block" /> Files</TabsTrigger>
+              <TabsTrigger value="discussion" className="text-[10px] sm:text-xs"><MessageSquare className="w-3.5 h-3.5 mr-1.5 hidden sm:block" /> Q&A</TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <div className="flex-1 overflow-y-auto p-0">
+            <TabsContent value="curriculum" className="m-0 border-none outline-none">
+              <div className="p-4 border-b bg-card sticky top-0 z-20 backdrop-blur-md">
+                <h2 className="font-bold text-sm">{activeTopic?.title || "Course Content"}</h2>
+              </div>
+              <div className="flex flex-col">
+                {activeTopic?.subtopics.map((subtopic: any) => (
+                  <div key={subtopic.id} className="border-b border-border/50 last:border-0 pb-2">
+                    <div className="bg-muted/30 px-4 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest sticky top-[53px] backdrop-blur-md z-10">
+                      {subtopic.title}
+                    </div>
+                    <div className="flex flex-col">
+                      {subtopic.videos.map((video: any) => {
+                        const isActive = video.id === lessonId; 
+                        return (
+                          <Link 
+                            key={video.id} 
+                            href={`/lessons/${video.id}`}
+                            className={`flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors ${isActive ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}`}
+                          >
+                            {video.completed ? (
+                              <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                            ) : (
+                              <div className={`w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 ${isActive ? 'border-primary' : 'border-muted-foreground/30'}`} />
+                            )}
+                            <div className="flex flex-col gap-1">
+                              <span className={`text-sm font-semibold leading-tight ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
+                                {video.title}
+                              </span>
+                              <span className="text-xs text-muted-foreground font-medium">
+                                {video.duration}
+                              </span>
+                            </div>
+                          </Link>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </TabsContent>
 
-      <Tabs defaultValue="overview" className="w-full">
-        <TabsList className="bg-muted/50 p-1 mb-6">
-          <TabsTrigger value="overview" className="gap-2"><FileText className="w-4 h-4" /> Overview</TabsTrigger>
-          <TabsTrigger value="resources" className="gap-2"><FileText className="w-4 h-4" /> Resources</TabsTrigger>
-          <TabsTrigger value="discussion" className="gap-2"><MessageSquare className="w-4 h-4" /> Discussion</TabsTrigger>
-        </TabsList>
-        
-        <TabsContent value="overview" className="space-y-4">
-          <h3 className="text-xl font-bold">About this lesson</h3>
-          <p className="text-muted-foreground leading-relaxed">
-            {lessonData.description}
-          </p>
-        </TabsContent>
+            <TabsContent value="overview" className="m-0 p-6 space-y-4 outline-none">
+              <h3 className="text-xl font-bold">{lessonData.title}</h3>
+              <div className="flex items-center gap-2 text-sm text-muted-foreground font-medium mb-4">
+                <Clock className="w-4 h-4" />
+                {lessonData.duration}
+              </div>
+              <p className="text-muted-foreground leading-relaxed text-sm">
+                {lessonData.description}
+              </p>
+            </TabsContent>
 
-        <TabsContent value="resources" className="grid gap-4">
-           {lessonData.resources?.map((file: any) => (
-             <Card key={file.name} className="p-4 flex items-center justify-between hover:border-primary/50 transition-colors cursor-pointer group">
-               <div className="flex items-center gap-3">
-                 <div className="p-2 bg-primary/10 rounded text-primary">
-                   <FileText className="w-5 h-5" />
+            <TabsContent value="resources" className="m-0 p-4 space-y-3 outline-none">
+               {lessonData.resources?.map((file: any) => (
+                 <Card key={file.name} className="p-3 flex items-center justify-between hover:border-primary/50 transition-colors cursor-pointer group bg-card shadow-sm">
+                   <div className="flex items-center gap-3 overflow-hidden">
+                     <div className="p-2 bg-primary/10 rounded-md text-primary shrink-0">
+                       <FileText className="w-4 h-4" />
+                     </div>
+                     <div className="truncate">
+                       <div className="font-semibold text-sm group-hover:text-primary transition-colors truncate">{file.name}</div>
+                       <div className="text-xs text-muted-foreground">{file.size} • PDF</div>
+                     </div>
+                   </div>
+                   <Button variant="ghost" size="icon" className="text-muted-foreground group-hover:text-primary shrink-0">
+                     <Download className="w-4 h-4" />
+                   </Button>
+                 </Card>
+               ))}
+               {(!lessonData.resources || lessonData.resources.length === 0) && (
+                 <div className="text-center p-8 text-muted-foreground text-sm">
+                    No resources attached to this specific lesson.
                  </div>
-                 <div>
-                   <div className="font-semibold group-hover:text-primary transition-colors">{file.name}</div>
-                   <div className="text-xs text-muted-foreground">{file.size}</div>
-                 </div>
-               </div>
-               <Button variant="ghost" size="sm" className="text-primary">Download</Button>
-             </Card>
-           ))}
-        </TabsContent>
-      </Tabs>
+               )}
+            </TabsContent>
+
+            <TabsContent value="discussion" className="m-0 p-6 outline-none">
+              <div className="text-center text-muted-foreground text-sm py-12">
+                 <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-20" />
+                 Discussion board coming soon.
+              </div>
+            </TabsContent>
+
+          </div>
+        </Tabs>
+      </aside>
     </div>
   );
 }
