@@ -10,11 +10,10 @@ import {
   CheckCircle2,
   FolderTree,
   Download,
-  Lock,
-  Clock
+  Clock,
+  Paperclip
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface LessonPlayerClientProps {
@@ -62,10 +61,9 @@ export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTop
         <Tabs defaultValue="curriculum" className="w-full flex flex-col h-full">
           
           <div className="p-4 border-b border-border bg-card shrink-0">
-            <TabsList className="w-full grid grid-cols-4 bg-muted/50 p-1">
+            <TabsList className="w-full grid grid-cols-3 bg-muted/50 p-1">
               <TabsTrigger value="curriculum" className="text-[10px] sm:text-xs"><FolderTree className="w-3.5 h-3.5 mr-1.5 hidden sm:block" /> Course</TabsTrigger>
               <TabsTrigger value="overview" className="text-[10px] sm:text-xs"><FileText className="w-3.5 h-3.5 mr-1.5 hidden sm:block" /> Info</TabsTrigger>
-              <TabsTrigger value="resources" className="text-[10px] sm:text-xs"><Download className="w-3.5 h-3.5 mr-1.5 hidden sm:block" /> Files</TabsTrigger>
               <TabsTrigger value="discussion" className="text-[10px] sm:text-xs"><MessageSquare className="w-3.5 h-3.5 mr-1.5 hidden sm:block" /> Q&A</TabsTrigger>
             </TabsList>
           </div>
@@ -76,19 +74,60 @@ export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTop
                 <h2 className="font-bold text-sm">{activeTopic?.title || "Course Content"}</h2>
               </div>
               <div className="flex flex-col">
+                {activeTopic?.resources && activeTopic.resources.length > 0 && (
+                  <div className="p-4 bg-primary/5 border-b border-border/50 flex flex-col gap-2">
+                    <div className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">
+                      Topic Resources
+                    </div>
+                    {activeTopic.resources.map((res: any) => (
+                      <Link key={res.id} href="#" className="flex items-center justify-between p-3 bg-card border border-primary/20 rounded-lg hover:border-primary/50 hover:shadow-sm transition-all group">
+                        <div className="flex items-center gap-3">
+                          <div className="p-2 bg-primary/10 rounded-md text-primary group-hover:bg-primary/20 transition-colors">
+                            <FileText className="w-4 h-4" />
+                          </div>
+                          <div className="flex flex-col">
+                            <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
+                              {res.title}
+                            </span>
+                            <span className="text-xs text-muted-foreground mt-0.5">{res.size} • PDF</span>
+                          </div>
+                        </div>
+                        <Download className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-primary transition-all mr-2" />
+                      </Link>
+                    ))}
+                  </div>
+                )}
+
                 {activeTopic?.subtopics.map((subtopic: any) => (
                   <div key={subtopic.id} className="border-b border-border/50 last:border-0 pb-2">
-                    <div className="bg-muted/30 px-4 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest sticky top-[53px] backdrop-blur-md z-10">
+                    <div className="bg-muted/30 px-4 py-2 text-[10px] font-bold text-muted-foreground uppercase tracking-widest sticky top-[53px] backdrop-blur-md z-10 border-b border-border/50">
                       {subtopic.title}
                     </div>
+                    
                     <div className="flex flex-col">
+                      {subtopic.resources && subtopic.resources.length > 0 && (
+                        <div className="flex flex-col border-b border-border/50 bg-muted/5">
+                          {subtopic.resources.map((res: any) => (
+                            <Link key={res.id} href="#" className="flex items-center gap-3 p-3 px-5 hover:bg-muted/50 transition-colors group">
+                              <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
+                              <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors truncate">
+                                {res.title}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground ml-auto border border-border px-1.5 py-0.5 rounded bg-background shrink-0">
+                                {res.size}
+                              </span>
+                            </Link>
+                          ))}
+                        </div>
+                      )}
+
                       {subtopic.videos.map((video: any) => {
                         const isActive = video.id === lessonId; 
                         return (
                           <Link 
                             key={video.id} 
                             href={`/lessons/${video.id}`}
-                            className={`flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors ${isActive ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}`}
+                            className={`flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${isActive ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}`}
                           >
                             {video.completed ? (
                               <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -121,30 +160,6 @@ export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTop
               <p className="text-muted-foreground leading-relaxed text-sm">
                 {lessonData.description}
               </p>
-            </TabsContent>
-
-            <TabsContent value="resources" className="m-0 p-4 space-y-3 outline-none">
-               {lessonData.resources?.map((file: any) => (
-                 <Card key={file.name} className="p-3 flex items-center justify-between hover:border-primary/50 transition-colors cursor-pointer group bg-card shadow-sm">
-                   <div className="flex items-center gap-3 overflow-hidden">
-                     <div className="p-2 bg-primary/10 rounded-md text-primary shrink-0">
-                       <FileText className="w-4 h-4" />
-                     </div>
-                     <div className="truncate">
-                       <div className="font-semibold text-sm group-hover:text-primary transition-colors truncate">{file.name}</div>
-                       <div className="text-xs text-muted-foreground">{file.size} • PDF</div>
-                     </div>
-                   </div>
-                   <Button variant="ghost" size="icon" className="text-muted-foreground group-hover:text-primary shrink-0">
-                     <Download className="w-4 h-4" />
-                   </Button>
-                 </Card>
-               ))}
-               {(!lessonData.resources || lessonData.resources.length === 0) && (
-                 <div className="text-center p-8 text-muted-foreground text-sm">
-                    No resources attached to this specific lesson.
-                 </div>
-               )}
             </TabsContent>
 
             <TabsContent value="discussion" className="m-0 p-6 outline-none">
