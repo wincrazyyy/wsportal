@@ -29,7 +29,7 @@ const mockVideoData = {
     },
     {
       id: "qa-2",
-      studentName: "Sarah Jenkins",
+      studentName: "Bobby Brown",
       studentInitials: "SJ",
       timeAgo: "5 days ago",
       question: "In the example at 22:15, if the translation vector is (-3, 4), does the equation become y = f(x+3) + 4 or y = f(x-3) + 4?",
