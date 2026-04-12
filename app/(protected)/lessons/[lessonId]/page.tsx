@@ -48,7 +48,7 @@ const mockVideoData = {
           authorInitials: "WS",
           isTutor: true,
           timeAgo: "4 days ago",
-          content: "Spot on, Marcus. Sarah, an easy way to remember this is asking yourself: 'What value of x makes the inside of the bracket zero?' For f(x+3), x has to be -3, hence the shift to the left by 3."
+          content: "Spot on, Marcus. Bobby, an easy way to remember this is asking yourself: 'What value of x makes the inside of the bracket zero?' For f(x+3), x has to be -3, hence the shift to the left by 3."
         }
       ]
     },
