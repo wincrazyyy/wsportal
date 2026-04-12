@@ -11,10 +11,12 @@ import {
   FolderTree,
   Download,
   Clock,
-  Paperclip
+  Paperclip,
+  Send
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 
 interface LessonPlayerClientProps {
   lessonId: string;
@@ -68,7 +70,7 @@ export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTop
             </TabsList>
           </div>
           
-          <div className="flex-1 overflow-y-auto p-0">
+          <div className="flex-1 overflow-y-auto p-0 flex flex-col relative">
             <TabsContent value="curriculum" className="m-0 border-none outline-none">
               <div className="p-4 border-b bg-card sticky top-0 z-20 backdrop-blur-md">
                 <h2 className="font-bold text-sm">{activeTopic?.title || "Course Content"}</h2>
@@ -127,21 +129,21 @@ export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTop
                           <Link 
                             key={video.id} 
                             href={`/lessons/${video.id}`}
-                            className={`flex items-start gap-3 px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${isActive ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}`}
+                            className={`flex flex-col gap-1.5 px-4 py-3 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${isActive ? 'bg-primary/5 border-l-4 border-l-primary' : 'border-l-4 border-l-transparent'}`}
                           >
-                            {video.completed ? (
-                              <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                            ) : (
-                              <div className={`w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 ${isActive ? 'border-primary' : 'border-muted-foreground/30'}`} />
-                            )}
-                            <div className="flex flex-col gap-1">
+                            <div className="flex items-start gap-3">
+                              {video.completed ? (
+                                <CheckCircle2 className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                              ) : (
+                                <div className={`w-4 h-4 rounded-full border-2 mt-0.5 shrink-0 ${isActive ? 'border-primary' : 'border-muted-foreground/30'}`} />
+                              )}
                               <span className={`text-sm font-semibold leading-tight ${isActive ? 'text-foreground' : 'text-muted-foreground'}`}>
                                 {video.title}
                               </span>
-                              <span className="text-xs text-muted-foreground font-medium">
-                                {video.duration}
-                              </span>
                             </div>
+                            <span className="text-xs text-muted-foreground font-medium ml-7">
+                              {video.duration}
+                            </span>
                           </Link>
                         );
                       })}
@@ -162,11 +164,75 @@ export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTop
               </p>
             </TabsContent>
 
-            <TabsContent value="discussion" className="m-0 p-6 outline-none">
-              <div className="text-center text-muted-foreground text-sm py-12">
-                 <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-20" />
-                 Discussion board coming soon.
+            <TabsContent value="discussion" className="m-0 flex flex-col h-full outline-none">
+              <div className="p-4 border-b border-border bg-muted/20 sticky top-0 z-10">
+                <div className="relative">
+                  <Input 
+                    placeholder="Ask a question about this lesson..." 
+                    className="pr-10 bg-background"
+                  />
+                  <Button size="icon" variant="ghost" className="absolute right-1 top-1/2 -translate-y-1/2 h-8 w-8 text-muted-foreground hover:text-primary">
+                    <Send className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
+
+              <div className="flex flex-col p-4 gap-6">
+                {lessonData.qa && lessonData.qa.length > 0 ? (
+                  lessonData.qa.map((thread: any) => (
+                    <div key={thread.id} className="flex flex-col gap-3">
+                      <div className="flex items-start gap-3">
+                        <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-bold shrink-0 text-muted-foreground">
+                          {thread.studentInitials}
+                        </div>
+                        <div className="flex flex-col gap-1">
+                          <div className="flex items-baseline justify-between gap-2">
+                            <span className="text-sm font-bold text-foreground">{thread.studentName}</span>
+                            <span className="text-[10px] text-muted-foreground">{thread.timeAgo}</span>
+                          </div>
+                          <p className="text-sm text-muted-foreground leading-relaxed">
+                            {thread.question}
+                          </p>
+                          <button className="text-xs font-semibold text-primary mt-1 self-start hover:underline">
+                            Reply
+                          </button>
+                        </div>
+                      </div>
+
+                      {thread.replies && thread.replies.length > 0 && (
+                        <div className="flex flex-col gap-4 pl-11 mt-1 border-l-2 border-muted/50 ml-[15px]">
+                          {thread.replies.map((reply: any) => (
+                            <div key={reply.id} className="flex items-start gap-3 relative before:absolute before:left-[-18px] before:top-4 before:w-3 before:h-px before:bg-muted/50">
+                              <div className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${reply.isTutor ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                                {reply.authorInitials}
+                              </div>
+                              <div className="flex flex-col gap-0.5">
+                                <div className="flex items-baseline gap-2">
+                                  <span className="text-sm font-bold text-foreground flex items-center gap-1.5">
+                                    {reply.authorName}
+                                    {reply.isTutor && <CheckCircle2 className="w-3 h-3 text-primary" />}
+                                  </span>
+                                  <span className="text-[10px] text-muted-foreground">{reply.timeAgo}</span>
+                                </div>
+                                <p className="text-sm text-muted-foreground leading-relaxed">
+                                  {reply.content}
+                                </p>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-muted-foreground text-sm py-12">
+                    <MessageSquare className="w-8 h-8 mx-auto mb-3 opacity-20" />
+                    No questions yet. Be the first to ask!
+                  </div>
+                )}
+              </div>
+
             </TabsContent>
 
           </div>
