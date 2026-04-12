@@ -9,6 +9,58 @@ const mockVideoData = {
   subtopic: "2.2 Transformations",
   duration: "45m",
   description: "In this deep dive, we explore how translations and dilations alter the graph of a function. We cover horizontal and vertical shifts, stretches, and how to represent these transformations algebraically.",
+  qa: [
+    {
+      id: "qa-1",
+      studentName: "Alex Chen",
+      studentInitials: "AC",
+      timeAgo: "2 days ago",
+      question: "I'm still a bit confused about horizontal dilations. Why does f(2x) compress the graph horizontally instead of stretching it?",
+      replies: [
+        {
+          id: "rep-1",
+          authorName: "Winson Siu",
+          authorInitials: "WS",
+          isTutor: true,
+          timeAgo: "1 day ago",
+          content: "Great question, Alex! Think of it this way: to get the same output y, the input x only needs to be half as big because it's being multiplied by 2 before the function evaluates it. Therefore, the whole graph gets 'pulled in' or compressed towards the y-axis by a factor of 1/2."
+        }
+      ]
+    },
+    {
+      id: "qa-2",
+      studentName: "Sarah Jenkins",
+      studentInitials: "SJ",
+      timeAgo: "5 days ago",
+      question: "In the example at 22:15, if the translation vector is (-3, 4), does the equation become y = f(x+3) + 4 or y = f(x-3) + 4?",
+      replies: [
+        {
+          id: "rep-2",
+          authorName: "Marcus T.",
+          authorInitials: "MT",
+          isTutor: false,
+          timeAgo: "4 days ago",
+          content: "It becomes f(x+3) + 4. Remember that horizontal shifts are 'opposite' to the sign inside the bracket!"
+        },
+        {
+          id: "rep-3",
+          authorName: "Winson Siu",
+          authorInitials: "WS",
+          isTutor: true,
+          timeAgo: "4 days ago",
+          content: "Spot on, Marcus. Sarah, an easy way to remember this is asking yourself: 'What value of x makes the inside of the bracket zero?' For f(x+3), x has to be -3, hence the shift to the left by 3."
+        }
+      ]
+    },
+    {
+      id: "qa-3",
+      studentName: "David O.",
+      studentInitials: "DO",
+      timeAgo: "1 week ago",
+      question: "Will we need to do combinations of dilations and translations on the non-calculator paper?",
+      replies: []
+    }
+  ]
 };
 
 const curriculum = [
