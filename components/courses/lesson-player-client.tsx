@@ -12,7 +12,8 @@ import {
   Download,
   Clock,
   Paperclip,
-  Send
+  Send,
+  ArrowRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -23,9 +24,10 @@ interface LessonPlayerClientProps {
   lessonData: any;
   curriculum: any; 
   activeTopic: any;
+  classId: string;
 }
 
-export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTopic }: LessonPlayerClientProps) {
+export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTopic, classId }: LessonPlayerClientProps) {
   
   return (
     <div className="flex-1 flex flex-col lg:flex-row h-full overflow-hidden bg-background">
@@ -165,7 +167,7 @@ export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTop
             </TabsContent>
 
             <TabsContent value="discussion" className="m-0 flex flex-col h-full outline-none">
-              <div className="p-4 border-b border-border bg-muted/20 sticky top-0 z-10">
+              <div className="p-4 border-b border-border bg-muted/20 sticky top-0 z-10 flex flex-col gap-3">
                 <div className="relative">
                   <Input 
                     placeholder="Ask a question about this lesson..." 
@@ -175,6 +177,12 @@ export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTop
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
+                <Link href={`/courses/${classId}/forum`} className="group self-end">
+                  <span className="text-xs font-medium text-primary flex items-center gap-1 hover:underline">
+                    View all class discussions
+                    <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
+                  </span>
+                </Link>
               </div>
 
               <div className="flex flex-col p-4 gap-6">

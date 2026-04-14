@@ -2,6 +2,8 @@ import { createClient } from "@/lib/supabase/server";
 import { LessonPlayerClient } from "@/components/courses/lesson-player-client";
 import { redirect } from "next/navigation";
 
+const mockClassId = "pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab"; 
+
 const mockVideoData = {
   id: "les-9a8b7c6d-5e4f-3a2b-1c0d-e9f8a7b6c5d4",
   title: "Translations & Dilations",
@@ -207,6 +209,7 @@ export default async function LessonPlayerPage({ params }: { params: Promise<{ l
       lessonData={videoData} 
       curriculum={curriculum}
       activeTopic={activeTopic}
+      classId={mockClassId}
     />
   );
 }
