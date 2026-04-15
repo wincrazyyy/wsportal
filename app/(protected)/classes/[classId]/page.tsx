@@ -1,34 +1,9 @@
-import Link from "next/link";
-import { 
-  PlayCircle, 
-  CheckCircle2, 
-  Lock, 
-  Clock, 
-  Play, 
-  FolderTree, 
-  ArrowLeft,
-  Megaphone,
-  Bell,
-  CalendarDays,
-  MessageCircle,
-  Paperclip,
-  FileText,
-  Download,
-  ExternalLink,
-  Image as ImageIcon,
-  MessageSquare,
-  ArrowRight
-} from "lucide-react";
-import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { ClassHeader } from "@/components/classes/class-header";
+import { UpNextHero } from "@/components/classes/up-next-hero";
+import { ClassUpdatesFeed } from "@/components/classes/class-updates-feed";
+import { CommunityBanner } from "@/components/classes/community-banner";
+import { CurriculumAccordion } from "@/components/classes/curriculum-accordion";
+import { Bell, CalendarDays, Megaphone } from "lucide-react";
 
 const currentClass = {
   id: "pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab",
@@ -230,266 +205,26 @@ export default async function ClassCurriculumPage({
 
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-8">
-      <div>
-        <Link href="/dashboard">
-          <Button variant="ghost" size="sm" className="mb-6 gap-2 text-muted-foreground hover:text-foreground -ml-2">
-            <ArrowLeft className="w-4 h-4" />
-            Back to Dashboard
-          </Button>
-        </Link>
+      
+      <ClassHeader 
+        title={currentClass.title} 
+        progress={overallProgress} 
+      />
 
-        <div className="flex flex-col md:flex-row md:items-end justify-between gap-6">
-          <div>
-            <div className="flex items-center gap-3 mb-2">
-              <h1 className="text-3xl font-bold tracking-tight">{currentClass.title}</h1>
-            </div>
-            <p className="text-muted-foreground">
-              Your centralized dashboard for curriculum, progress, and tutor updates.
-            </p>
-          </div>
-          <div className="w-full md:w-72 bg-card p-4 rounded-xl border border-border shadow-sm">
-            <div className="flex justify-between items-center mb-2">
-              <span className="text-sm font-semibold">Overall Progress</span>
-              <span className="text-sm font-bold text-primary">{overallProgress}%</span>
-            </div>
-            <Progress value={overallProgress} className="h-2" />
-          </div>
-        </div>
-      </div>
-
-      {nextVideo && (
-        <Card className="w-full relative overflow-hidden border-2 border-primary/20 bg-card shadow-lg">
-          <div className="absolute top-0 left-0 w-1.5 h-full bg-primary"></div>
-          <div className="p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
-            <div className="flex items-start gap-5">
-              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center shrink-0">
-                <Play className="w-8 h-8 text-primary ml-1" />
-              </div>
-              <div>
-                <div className="text-sm font-bold text-primary mb-1 uppercase tracking-wider">Up Next</div>
-                <h2 className="text-2xl font-bold mb-2">{nextVideo.title}</h2>
-                <p className="text-muted-foreground">{nextVideo.subtopicTitle} • {nextVideo.duration}</p>
-              </div>
-            </div>
-            <Link href={`/lessons/${nextVideo.id}`} className="w-full md:w-auto shrink-0">
-              <Button size="lg" className="w-full rounded-full text-md h-12 px-8 shadow-md">
-                Resume Lesson
-              </Button>
-            </Link>
-          </div>
-        </Card>
-      )}
+      <UpNextHero video={nextVideo} />
 
       <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
-        <div className="xl:col-span-7 space-y-6">
-          <div className="flex items-center justify-between mb-2">
-            <h2 className="text-2xl font-bold">Class Updates</h2>
-            <Button variant="ghost" size="sm" className="text-primary hover:bg-primary/10">Filter</Button>
-          </div>
-          
-          <div className="flex flex-col gap-6">
-            {classAnnouncements.map((ann) => {
-              const isImportant = ann.type === "important";
-
-              return (
-                <Card 
-                  key={ann.id} 
-                  className={`p-6 bg-card border shadow-sm transition-all hover:shadow-md ${isImportant ? 'border-primary/30 ring-1 ring-primary/10' : 'border-border'}`}
-                >
-                  <div className="flex items-center justify-between mb-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm shrink-0">
-                        {classTutor.initials}
-                      </div>
-                      <div>
-                        <div className="font-bold text-sm text-foreground">{classTutor.name}</div>
-                        <div className="text-xs text-muted-foreground font-medium">{ann.date}</div>
-                      </div>
-                    </div>
-                    {isImportant && <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 border-transparent pointer-events-none">Important</Badge>}
-                  </div>
-                  
-                  <h3 className="text-xl font-bold mb-3">{ann.title}</h3>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {ann.content}
-                  </p>
-
-                  {ann.link && (
-                    <Link href={ann.link.url} className="mt-4 flex items-center gap-3 p-3 rounded-lg border border-border bg-muted/30 hover:bg-muted/50 transition-colors group">
-                      <div className="p-2 bg-background rounded-md text-primary group-hover:bg-primary/10 transition-colors shadow-sm">
-                        <ExternalLink className="w-4 h-4" />
-                      </div>
-                      <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors flex-1 truncate">
-                        {ann.link.title}
-                      </span>
-                    </Link>
-                  )}
-
-                  {ann.image && (
-                    <div className="mt-4 rounded-xl border border-border bg-muted/20 flex flex-col items-center justify-center aspect-video overflow-hidden">
-                      <ImageIcon className="w-10 h-10 text-muted-foreground/30 mb-2" />
-                      <span className="text-xs font-medium text-muted-foreground uppercase tracking-widest">{ann.image.alt}</span>
-                    </div>
-                  )}
-
-                  <div className="flex items-center gap-6 mt-6 pt-4 border-t border-border/50 text-sm font-medium text-muted-foreground">
-                    <button className="flex items-center gap-2 hover:text-primary transition-colors">
-                      <MessageCircle className="w-4 h-4" /> 
-                      {ann.comments > 0 ? `${ann.comments} Comments` : 'Discuss'}
-                    </button>
-                    {ann.type === "event" && (
-                      <button className="flex items-center gap-2 hover:text-primary transition-colors">
-                        <Paperclip className="w-4 h-4" /> 1 Attachment
-                      </button>
-                    )}
-                  </div>
-                </Card>
-              );
-            })}
-          </div>
-        </div>
+        <ClassUpdatesFeed 
+          announcements={classAnnouncements} 
+          tutor={classTutor} 
+        />
 
         <div className="xl:col-span-5 space-y-8 sticky top-24">
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-bold">Community</h2>
-            <Card className="p-5 border-primary/20 shadow-sm bg-primary/5 hover:bg-primary/10 transition-colors group overflow-hidden relative cursor-pointer">
-              <div className="absolute top-0 left-0 w-1 h-full bg-primary"></div>
-              <Link href={`/courses/${classId}/forum`} className="flex flex-col gap-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2 text-primary font-bold">
-                    <MessageSquare className="w-5 h-5" />
-                    <h3>Class Forum</h3>
-                  </div>
-                  <ArrowRight className="w-4 h-4 text-primary opacity-0 group-hover:opacity-100 group-hover:translate-x-1 transition-all" />
-                </div>
-                <p className="text-sm text-muted-foreground">
-                  Ask questions, share resources, and collaborate with your peers.
-                </p>
-              </Link>
-            </Card>
-          </div>
-
-          <div className="flex flex-col gap-4">
-            <h2 className="text-2xl font-bold">Curriculum</h2>
-            <Accordion type="single" collapsible className="w-full flex flex-col gap-4">
-              {curriculum.map((topic) => {
-                const totalVideos = topic.subtopics.reduce((acc, sub) => acc + sub.videos.length, 0);
-
-                return (
-                  <AccordionItem 
-                    key={topic.id} 
-                    value={topic.id} 
-                    className="bg-card rounded-xl border border-border shadow-sm overflow-hidden relative"
-                  >
-                    <div className={`absolute top-0 left-0 w-full h-1 ${topic.status === 'active' ? 'bg-primary' : 'bg-muted'}`}></div>
-                    
-                    <AccordionTrigger className="p-5 md:p-6 bg-muted/10 hover:bg-muted/40 transition-colors border-b border-border hover:no-underline [&[data-state=open]]:bg-muted/40 text-left pt-6">
-                      <div className="flex flex-col gap-3 w-full pr-2">
-                        <div className="flex items-start justify-between gap-4">
-                          <h3 className="text-base font-bold leading-tight">{topic.title}</h3>
-                          <div className="shrink-0 mt-0.5">
-                            {topic.status === "completed" && <CheckCircle2 className="w-4 h-4 text-primary" />}
-                            {topic.status === "locked" && <Lock className="w-4 h-4 text-muted-foreground" />}
-                          </div>
-                        </div>
-                        
-                        <div className="flex flex-wrap items-center gap-x-3 gap-y-2 text-xs text-muted-foreground font-medium">
-                          <span className="flex items-center gap-1 shrink-0"><Clock className="w-3 h-3" /> {topic.totalDuration}</span>
-                          <span className="flex items-center gap-1 shrink-0"><FolderTree className="w-3 h-3" /> {topic.subtopics.length}</span>
-                          <span className="shrink-0">{totalVideos} Videos</span>
-                        </div>
-                      </div>
-                    </AccordionTrigger>
-
-                    <AccordionContent className="p-0 border-none">
-                      <div className="flex flex-col">
-                        
-                        {topic.resources && topic.resources.length > 0 && (
-                          <div className="p-4 bg-primary/5 border-b border-border/50 flex flex-col gap-2">
-                            <div className="text-[10px] font-bold uppercase tracking-widest text-primary mb-1">
-                              Topic Resources
-                            </div>
-                            {topic.resources.map(res => (
-                              <Link key={res.id} href="#" className="flex items-center justify-between p-3 bg-card border border-primary/20 rounded-lg hover:border-primary/50 hover:shadow-sm transition-all group">
-                                <div className="flex items-center gap-3">
-                                  <div className="p-2 bg-primary/10 rounded-md text-primary group-hover:bg-primary/20 transition-colors">
-                                    <FileText className="w-4 h-4" />
-                                  </div>
-                                  <div className="flex flex-col">
-                                    <span className="text-sm font-bold text-foreground group-hover:text-primary transition-colors leading-tight">
-                                      {res.title}
-                                    </span>
-                                    <span className="text-xs text-muted-foreground mt-0.5">{res.size} • PDF</span>
-                                  </div>
-                                </div>
-                                <Download className="w-4 h-4 text-muted-foreground opacity-0 group-hover:opacity-100 group-hover:text-primary transition-all mr-2" />
-                              </Link>
-                            ))}
-                          </div>
-                        )}
-
-                        {topic.subtopics.map((subtopic) => (
-                          <div key={subtopic.id} className="border-b border-border/50 last:border-0">
-                            
-                            <div className="bg-muted/20 px-4 py-2.5 text-[10px] font-bold text-muted-foreground uppercase tracking-widest border-b border-border/50">
-                              {subtopic.title}
-                            </div>
-
-                            <div className="flex flex-col">
-                              {subtopic.resources && subtopic.resources.length > 0 && (
-                                <div className="flex flex-col border-b border-border/50 bg-muted/5">
-                                  {subtopic.resources.map(res => (
-                                    <Link key={res.id} href="#" className="flex items-center gap-3 p-3 px-5 hover:bg-muted/50 transition-colors group">
-                                      <Paperclip className="w-3.5 h-3.5 text-muted-foreground shrink-0" />
-                                      <span className="text-sm font-medium text-muted-foreground group-hover:text-foreground transition-colors truncate">
-                                        {res.title}
-                                      </span>
-                                      <span className="text-[10px] text-muted-foreground ml-auto border border-border px-1.5 py-0.5 rounded bg-background shrink-0">
-                                        {res.size}
-                                      </span>
-                                    </Link>
-                                  ))}
-                                </div>
-                              )}
-
-                              {subtopic.videos.map((video) => (
-                                <Link 
-                                  key={video.id} 
-                                  href={`/lessons/${video.id}`}
-                                  className={`flex flex-col gap-1.5 p-4 hover:bg-muted/50 transition-colors border-b border-border/50 last:border-0 ${topic.status === "locked" ? "opacity-60 pointer-events-none" : ""}`}
-                                >
-                                  <div className="flex items-start gap-3">
-                                    <div className="mt-0.5">
-                                      {video.completed ? (
-                                        <CheckCircle2 className="w-4 h-4 text-primary shrink-0" />
-                                      ) : (
-                                        <PlayCircle className="w-4 h-4 text-muted-foreground shrink-0" />
-                                      )}
-                                    </div>
-                                    <span className={`font-medium text-sm leading-tight ${video.completed ? "text-muted-foreground" : "text-foreground"}`}>
-                                      {video.title}
-                                    </span>
-                                  </div>
-                                  <div className="text-xs text-muted-foreground font-medium ml-7">
-                                    {video.duration}
-                                  </div>
-                                </Link>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </AccordionContent>
-
-                  </AccordionItem>
-                );
-              })}
-            </Accordion>
-          </div>
-
+          <CommunityBanner classId={classId} />
+          <CurriculumAccordion curriculum={curriculum} />
         </div>
-
       </div>
+
     </div>
   );
 }
