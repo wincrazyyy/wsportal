@@ -3,7 +3,11 @@ import { UpNextHero } from "@/components/classes/up-next-hero";
 import { ClassUpdatesFeed } from "@/components/classes/class-updates-feed";
 import { CommunityBanner } from "@/components/classes/community-banner";
 import { CurriculumAccordion } from "@/components/classes/curriculum-accordion";
-import { Bell, CalendarDays, Megaphone } from "lucide-react";
+import { 
+  Bell, 
+  CalendarDays, 
+  Megaphone 
+} from "lucide-react";
 
 const currentClass = {
   id: "pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab",
