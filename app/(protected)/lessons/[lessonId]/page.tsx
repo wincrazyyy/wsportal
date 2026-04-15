@@ -1,5 +1,5 @@
 import { createClient } from "@/lib/supabase/server";
-import { LessonPlayerClient } from "@/components/courses/lesson-player-client";
+import { LessonPlayerClient } from "@/components/lessons/lesson-player-client";
 import { redirect } from "next/navigation";
 
 const mockClassId = "pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab"; 
