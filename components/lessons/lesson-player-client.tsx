@@ -177,7 +177,7 @@ export function LessonPlayerClient({ lessonId, lessonData, curriculum, activeTop
                     <Send className="w-4 h-4" />
                   </Button>
                 </div>
-                <Link href={`/courses/${classId}/forum`} className="group self-end">
+                <Link href={`/classes/${classId}/forum`} className="group self-end">
                   <span className="text-xs font-medium text-primary flex items-center gap-1 hover:underline">
                     View all class discussions
                     <ArrowRight className="w-3 h-3 group-hover:translate-x-0.5 transition-transform" />
