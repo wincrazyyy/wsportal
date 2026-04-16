@@ -49,6 +49,7 @@ export function SignUpForm({
           data: {
             first_name: firstName,
             last_name: lastName,
+            display_name: `${firstName} ${lastName}`.trim(),
           },
           emailRedirectTo: `${window.location.origin}/protected`,
         },
