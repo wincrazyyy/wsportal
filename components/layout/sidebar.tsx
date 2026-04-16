@@ -130,7 +130,7 @@ export function Sidebar() {
       </Suspense>
 
       <div className="p-4 border-t border-border flex items-center gap-2 shrink-0">
-        <form action="/auth/sign-out" method="post" className="flex-1">
+        <form action="/auth/login" method="post" className="flex-1">
           <button className="flex w-full items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:bg-destructive/10 hover:text-destructive transition-colors">
             <LogOut className="w-5 h-5" />
             Sign Out
