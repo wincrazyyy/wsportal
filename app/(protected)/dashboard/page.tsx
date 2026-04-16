@@ -33,6 +33,7 @@ export default async function DashboardHubPage() {
     redirect("/login");
   }
 
+  // dont have it yet
   const firstName = 
     user.user_metadata?.first_name || 
     user.user_metadata?.full_name?.split(' ')[0] || 
