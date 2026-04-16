@@ -88,7 +88,7 @@ export default async function DashboardHubPage() {
                 </div>
                 
                 <div className="p-3 bg-muted/20 border-t border-border">
-                  <Link href={`/courses/${cls.id}`} className="w-full">
+                  <Link href={`/classes/${cls.id}`} className="w-full">
                     <Button variant="ghost" className="w-full justify-between group hover:bg-primary/5 hover:text-primary text-sm font-semibold h-10">
                       View Curriculum
                       <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />

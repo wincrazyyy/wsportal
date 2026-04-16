@@ -25,12 +25,12 @@ const registeredClasses = [
   { 
     id: "pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab", 
     name: "IBDP Math AA HL", 
-    href: "/courses/pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab", 
+    href: "/classes/pkg-11a2b3c4-d5e6-7f8a-9b0c-1234567890ab", 
   },
   { 
     id: "pkg-99x8y7z6-a1b2-c3d4-e5f6-1234567890ab", 
     name: "IBDP Physics HL", 
-    href: "/courses/pkg-99x8y7z6-a1b2-c3d4-e5f6-1234567890ab", 
+    href: "/classes/pkg-99x8y7z6-a1b2-c3d4-e5f6-1234567890ab", 
   },
 ];
 
