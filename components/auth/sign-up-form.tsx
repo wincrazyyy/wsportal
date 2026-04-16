@@ -51,11 +51,10 @@ export function SignUpForm({
             last_name: lastName,
             display_name: `${firstName} ${lastName}`.trim(),
           },
-          emailRedirectTo: `${window.location.origin}/protected`,
         },
       });
       if (error) throw error;
-      router.push("/auth/sign-up-success");
+      router.push(`/auth/verify?email=${encodeURIComponent(email)}`);
     } catch (error: unknown) {
       setError(error instanceof Error ? error.message : "An error occurred");
     } finally {
