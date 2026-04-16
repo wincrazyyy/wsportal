@@ -18,7 +18,7 @@ export default async function LessonLayout({
     <div className="flex flex-col h-screen bg-background">
       <header className="h-16 border-b flex items-center justify-between px-4 md:px-6 shrink-0 bg-card z-50">
         <div className="flex items-center gap-4 overflow-hidden">
-          <Link href={`/courses/${mockClassId}`} className="shrink-0">
+          <Link href={`/classes/${mockClassId}`} className="shrink-0">
             <Button variant="ghost" size="sm" className="gap-2 text-muted-foreground hover:text-foreground">
               <ArrowLeft className="w-4 h-4" />
               <span className="hidden sm:inline">Back to Curriculum</span>
