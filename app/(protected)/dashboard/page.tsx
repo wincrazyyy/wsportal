@@ -33,11 +33,16 @@ export default async function DashboardHubPage() {
     redirect("/login");
   }
 
+  const firstName = 
+    user.user_metadata?.first_name || 
+    user.user_metadata?.full_name?.split(' ')[0] || 
+    "Student";
+
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-8">
       <div>
         <h1 className="text-3xl font-bold tracking-tight mb-2">
-          Welcome back, {user.email?.split('@')[0] || "Student"}! 👋
+          Welcome back, {firstName}! 👋
         </h1>
         <p className="text-muted-foreground">
           Here is your overall progress and the latest updates from your tutors.
@@ -50,6 +55,7 @@ export default async function DashboardHubPage() {
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start pt-4">
         <GlobalUpdatesFeed />
         <EnrolledClassesList classes={enrolledClasses} />
+
       </div>
     </div>
   );
