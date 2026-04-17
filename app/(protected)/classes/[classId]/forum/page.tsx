@@ -91,7 +91,7 @@ export default async function ClassForumPage({
   return (
     <div className="flex-1 p-6 md:p-8 overflow-y-auto max-w-7xl mx-auto w-full space-y-8 bg-background">
       <div>
-        <Link href={`/courses/${classId}`}>
+        <Link href={`/classes/${classId}`}>
           <Button variant="ghost" size="sm" className="mb-6 gap-2 text-muted-foreground hover:text-foreground -ml-2">
             <ArrowLeft className="w-4 h-4" />
             Back to Curriculum
