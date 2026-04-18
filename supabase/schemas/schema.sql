@@ -11,7 +11,6 @@ CREATE TYPE forum_post_type AS ENUM ('general', 'video_qa');
 -- SHARED TRIGGER FUNCTIONS
 -- ====================================================================================
 
--- Trigger function to enforce automated 'updated_at' timestamps across all tables
 CREATE OR REPLACE FUNCTION public.set_current_timestamp_updated_at()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -19,8 +18,8 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
+COMMENT ON FUNCTION public.set_current_timestamp_updated_at() IS 'Generic trigger function to enforce accurate audit trails for record modifications.';
 
--- Trigger function to automatically provision a profile upon auth.users insertion
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -35,6 +34,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
+COMMENT ON FUNCTION public.handle_new_user() IS 'Automates profile provisioning upon identity creation. Runs with SECURITY DEFINER to bypass RLS during the authentication flow.';
 
 -- ====================================================================================
 -- PROFILES & RBAC
@@ -49,7 +49,8 @@ CREATE TABLE profiles (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
-COMMENT ON TABLE profiles IS 'Extended user profile data mapped 1:1 with auth.users.';
+COMMENT ON TABLE profiles IS 'Extended user profile data maintaining a strict 1:1 relationship with the external authentication provider.';
+COMMENT ON COLUMN profiles.role IS 'Determines application-level access boundaries and feature flagging.';
 
 CREATE TRIGGER on_auth_user_created
     AFTER INSERT ON auth.users
@@ -71,8 +72,8 @@ CREATE TABLE classes (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
-COMMENT ON TABLE classes IS 'Top-level instructional courses within the curriculum.';
-COMMENT ON COLUMN classes.code IS 'Unique alphanumeric identifier for programmatic reference and UI display.';
+COMMENT ON TABLE classes IS 'Defines top-level instructional containers within the platform hierarchy.';
+COMMENT ON COLUMN classes.tutor_id IS 'Permits NULL on deletion to preserve historical class data if an instructor is removed from the system.';
 
 CREATE INDEX idx_classes_tutor_id ON classes(tutor_id);
 
@@ -89,8 +90,10 @@ CREATE TABLE class_enrollments (
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     PRIMARY KEY (user_id, class_id)
 );
-COMMENT ON TABLE class_enrollments IS 'Associative entity managing many-to-many relationship between users and classes.';
+COMMENT ON TABLE class_enrollments IS 'Resolves the many-to-many relationship between users and classes.';
+COMMENT ON COLUMN class_enrollments.user_id IS 'Acts as the leading column in the primary key B-tree, implicitly indexing queries filtering strictly by user_id.';
 
+-- Secondary index required for reverse lookups (e.g., retrieving all users for a specific class)
 CREATE INDEX idx_class_enrollments_class_id ON class_enrollments(class_id);
 
 CREATE TRIGGER set_class_enrollments_updated_at
@@ -109,8 +112,8 @@ CREATE TABLE topics (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
-COMMENT ON TABLE topics IS 'Sequential modules organized within a specific class.';
-COMMENT ON COLUMN topics.total_duration IS 'Native PostgreSQL INTERVAL representing aggregated structural time logic.';
+COMMENT ON TABLE topics IS 'First-order structural children of classes, representing sequential learning modules.';
+COMMENT ON COLUMN topics.total_duration IS 'Utilises native INTERVAL type to allow precise date/time arithmetic and aggregation.';
 
 CREATE INDEX idx_topics_class_id ON topics(class_id);
 
@@ -128,7 +131,7 @@ CREATE TABLE subtopics (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
-COMMENT ON TABLE subtopics IS 'Granular groupings of instructional content within a parent topic.';
+COMMENT ON TABLE subtopics IS 'Second-order structural children providing granular organisational boundaries within topics.';
 
 CREATE INDEX idx_subtopics_topic_id ON subtopics(topic_id);
 
@@ -144,12 +147,13 @@ CREATE TABLE videos (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     duration INTERVAL,
-    video_url TEXT, 
+    video_url VARCHAR(2048), 
     order_index INTEGER NOT NULL CHECK (order_index >= 0),
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
-COMMENT ON TABLE videos IS 'Primary media assets serving as lessons within a subtopic.';
+COMMENT ON TABLE videos IS 'Primary instructional media nodes tied strictly to subtopics.';
+COMMENT ON COLUMN videos.video_url IS 'Constrained to 2048 characters matching the maximum safe limit for standardised web URLs.';
 
 CREATE INDEX idx_videos_subtopic_id ON videos(subtopic_id);
 
@@ -163,7 +167,7 @@ CREATE TABLE resources (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     size_bytes BIGINT NOT NULL CHECK (size_bytes >= 0), 
-    file_url TEXT NOT NULL,
+    file_url VARCHAR(2048) NOT NULL,
     topic_id UUID REFERENCES topics(id) ON DELETE CASCADE ON UPDATE CASCADE,
     subtopic_id UUID REFERENCES subtopics(id) ON DELETE CASCADE ON UPDATE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -173,8 +177,9 @@ CREATE TABLE resources (
         (topic_id IS NULL AND subtopic_id IS NOT NULL)
     )
 );
-COMMENT ON TABLE resources IS 'Supplementary file assets mapped exclusively to either a topic or subtopic constraint.';
-COMMENT ON COLUMN resources.size_bytes IS 'Maintained as BIGINT to support standard arithmetic calculation and system storage thresholds.';
+COMMENT ON TABLE resources IS 'Polymorphic asset table supporting attachments to either topics or subtopics via constrained exclusivity.';
+COMMENT ON COLUMN resources.size_bytes IS 'Enforces BIGINT to prevent overflow issues common with large file representations in 32-bit integers.';
+COMMENT ON CONSTRAINT chk_resource_parent_exclusivity ON resources IS 'Guarantees the structural integrity of the asset hierarchy by acting as an XOR gate.';
 
 CREATE INDEX idx_resources_topic_id ON resources(topic_id);
 CREATE INDEX idx_resources_subtopic_id ON resources(subtopic_id);
@@ -198,9 +203,9 @@ CREATE TABLE user_video_progress (
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     PRIMARY KEY (user_id, video_id)
 );
-COMMENT ON TABLE user_video_progress IS 'Tracks definitive completion states and granular playback positions of video assets for individual users.';
-COMMENT ON COLUMN user_video_progress.last_position_seconds IS 'Playhead position in seconds for resuming playback.';
-COMMENT ON COLUMN user_video_progress.total_watch_time_seconds IS 'Cumulative seconds spent watching the video, useful if a student re-watches sections.';
+COMMENT ON TABLE user_video_progress IS 'Stateful record of client-side playback telemetry and definitive completion metrics.';
+COMMENT ON COLUMN user_video_progress.last_position_seconds IS 'Maintains the exact playhead coordinate for persistent resume functionality.';
+COMMENT ON COLUMN user_video_progress.total_watch_time_seconds IS 'Aggregates total engagement duration, facilitating advanced retention analytics.';
 
 CREATE INDEX idx_user_video_progress_video_id ON user_video_progress(video_id);
 
@@ -220,13 +225,13 @@ CREATE TABLE announcements (
     content TEXT NOT NULL,
     type announcement_type DEFAULT 'standard'::announcement_type NOT NULL,
     link_title VARCHAR(255),
-    link_url TEXT,
+    link_url VARCHAR(2048),
     image_alt VARCHAR(255),
-    image_url TEXT,
+    image_url VARCHAR(2048),
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
-COMMENT ON TABLE announcements IS 'Broadcasted unidirectional communication nodes published by authorized class administrators.';
+COMMENT ON TABLE announcements IS 'Unidirectional broadcast payloads distributed from administrators/tutors to enrolled users.';
 
 CREATE INDEX idx_announcements_class_id ON announcements(class_id);
 CREATE INDEX idx_announcements_author_id ON announcements(author_id);
@@ -254,7 +259,8 @@ CREATE TABLE forum_posts (
         (type = 'video_qa' AND video_id IS NOT NULL)
     )
 );
-COMMENT ON TABLE forum_posts IS 'Top-level discussion nodes within the class forum architecture.';
+COMMENT ON TABLE forum_posts IS 'Primary asynchronous discussion nodes establishing the root of a conversation thread.';
+COMMENT ON CONSTRAINT chk_forum_post_video_context ON forum_posts IS 'Enforces the presence of a target video reference exclusively when the thread context demands it.';
 
 CREATE INDEX idx_forum_posts_class_id ON forum_posts(class_id);
 CREATE INDEX idx_forum_posts_author_id ON forum_posts(author_id);
@@ -274,7 +280,7 @@ CREATE TABLE forum_replies (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
-COMMENT ON TABLE forum_replies IS 'Secondary discussion nodes linked relationally to parent forum posts.';
+COMMENT ON TABLE forum_replies IS 'Chronological conversational appendages relationally bound to a parent thread.';
 
 CREATE INDEX idx_forum_replies_post_id ON forum_replies(post_id);
 CREATE INDEX idx_forum_replies_author_id ON forum_replies(author_id);
@@ -284,7 +290,7 @@ CREATE TRIGGER set_forum_replies_updated_at
     FOR EACH ROW EXECUTE PROCEDURE public.set_current_timestamp_updated_at();
 
 -- ====================================================================================
--- ROW LEVEL SECURITY (RLS) INITIALIZATION
+-- ROW LEVEL SECURITY (RLS) INITIALISATION
 -- ====================================================================================
 
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
