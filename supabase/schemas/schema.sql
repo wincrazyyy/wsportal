@@ -197,6 +197,7 @@ CREATE TRIGGER set_resources_updated_at
 -- ====================================================================================
 -- USER PROGRESS TRACKING
 -- ====================================================================================
+
 CREATE TABLE user_video_progress (
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE ON UPDATE CASCADE,
     video_id UUID REFERENCES videos(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -223,6 +224,7 @@ CREATE TRIGGER set_user_video_progress_updated_at
 -- ====================================================================================
 -- COMMUNICATIONS & FORUM
 -- ====================================================================================
+
 CREATE TABLE announcements (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE ON UPDATE CASCADE,
