@@ -276,14 +276,18 @@ CREATE TRIGGER set_forum_posts_updated_at
 CREATE TABLE forum_replies (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     post_id UUID NOT NULL REFERENCES forum_posts(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    parent_reply_id UUID REFERENCES forum_replies(id) ON DELETE CASCADE ON UPDATE CASCADE,
     author_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE ON UPDATE CASCADE,
     content TEXT NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
 );
-COMMENT ON TABLE forum_replies IS 'Chronological conversational appendages relationally bound to a parent thread.';
+COMMENT ON TABLE forum_replies IS 'Conversational appendages supporting infinite nesting via an adjacency list architecture.';
+COMMENT ON COLUMN forum_replies.post_id IS 'Binds the reply to the root discussion thread. Retained on all nested replies to prevent expensive recursive lookups when fetching a flat thread count.';
+COMMENT ON COLUMN forum_replies.parent_reply_id IS 'Self-referencing constraint enabling hierarchical, threaded comment trees. A NULL value indicates a top-level reply directly to the main post.';
 
 CREATE INDEX idx_forum_replies_post_id ON forum_replies(post_id);
+CREATE INDEX idx_forum_replies_parent_reply_id ON forum_replies(parent_reply_id);
 CREATE INDEX idx_forum_replies_author_id ON forum_replies(author_id);
 
 CREATE TRIGGER set_forum_replies_updated_at
