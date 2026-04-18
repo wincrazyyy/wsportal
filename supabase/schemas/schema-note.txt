@@ -1,0 +1,22 @@
+A Quick Note on Querying this Structure
+Because this allows for infinite nesting (a reply to a reply to a reply), simple JOIN statements will no longer be enough to fetch a whole comment section.
+
+When you build your backend endpoint to fetch a forum post, you will need to use a Recursive CTE (Common Table Expression) in PostgreSQL. This allows the database to traverse the nested tree and return it efficiently in a single query.
+
+For example, your backend fetch will eventually look something like this:
+
+SQL
+WITH RECURSIVE reply_tree AS (
+    -- Base case: Top level replies (where parent_reply_id IS NULL)
+    SELECT id, post_id, parent_reply_id, author_id, content, created_at, 1 AS depth
+    FROM forum_replies
+    WHERE post_id = 'target-post-uuid' AND parent_reply_id IS NULL
+
+    UNION ALL
+
+    -- Recursive step: Join child replies to their parents
+    SELECT child.id, child.post_id, child.parent_reply_id, child.author_id, child.content, child.created_at, parent.depth + 1
+    FROM forum_replies child
+    INNER JOIN reply_tree parent ON parent.id = child.parent_reply_id
+)
+SELECT * FROM reply_tree ORDER BY created_at ASC;

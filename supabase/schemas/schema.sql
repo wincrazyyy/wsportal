@@ -150,10 +150,14 @@ CREATE TABLE videos (
     video_url VARCHAR(2048), 
     order_index INTEGER NOT NULL CHECK (order_index >= 0),
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    CONSTRAINT chk_videos_url_format CHECK (
+        video_url IS NULL OR video_url ~* '^https?://'
+    )
 );
 COMMENT ON TABLE videos IS 'Primary instructional media nodes tied strictly to subtopics.';
 COMMENT ON COLUMN videos.video_url IS 'Constrained to 2048 characters matching the maximum safe limit for standardised web URLs.';
+COMMENT ON CONSTRAINT chk_videos_url_format ON videos IS 'Ensures any provided URL is a valid HTTP/HTTPS format, preventing plain-text data entry errors.';
 
 CREATE INDEX idx_videos_subtopic_id ON videos(subtopic_id);
 
@@ -175,11 +179,13 @@ CREATE TABLE resources (
     CONSTRAINT chk_resource_parent_exclusivity CHECK (
         (topic_id IS NOT NULL AND subtopic_id IS NULL) OR 
         (topic_id IS NULL AND subtopic_id IS NOT NULL)
-    )
+    ),
+    CONSTRAINT chk_resources_url_format CHECK (file_url ~* '^https?://')
 );
 COMMENT ON TABLE resources IS 'Polymorphic asset table supporting attachments to either topics or subtopics via constrained exclusivity.';
 COMMENT ON COLUMN resources.size_bytes IS 'Enforces BIGINT to prevent overflow issues common with large file representations in 32-bit integers.';
 COMMENT ON CONSTRAINT chk_resource_parent_exclusivity ON resources IS 'Guarantees the structural integrity of the asset hierarchy by acting as an XOR gate.';
+COMMENT ON CONSTRAINT chk_resources_url_format ON resources IS 'Enforces valid HTTP/HTTPS protocol formatting for the mandatory file_url.';
 
 CREATE INDEX idx_resources_topic_id ON resources(topic_id);
 CREATE INDEX idx_resources_subtopic_id ON resources(subtopic_id);
@@ -217,7 +223,6 @@ CREATE TRIGGER set_user_video_progress_updated_at
 -- ====================================================================================
 -- COMMUNICATIONS & FORUM
 -- ====================================================================================
-
 CREATE TABLE announcements (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -230,9 +235,17 @@ CREATE TABLE announcements (
     image_alt VARCHAR(255),
     image_url VARCHAR(2048),
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    CONSTRAINT chk_announcements_link_url_format CHECK (
+        link_url IS NULL OR link_url ~* '^https?://'
+    ),
+    CONSTRAINT chk_announcements_image_url_format CHECK (
+        image_url IS NULL OR image_url ~* '^https?://'
+    )
 );
 COMMENT ON TABLE announcements IS 'Unidirectional broadcast payloads distributed from administrators/tutors to enrolled users.';
+COMMENT ON CONSTRAINT chk_announcements_link_url_format ON announcements IS 'Ensures optional link attachments are valid HTTP/HTTPS URLs.';
+COMMENT ON CONSTRAINT chk_announcements_image_url_format ON announcements IS 'Ensures optional image attachments are valid HTTP/HTTPS URLs.';
 
 CREATE INDEX idx_announcements_class_id ON announcements(class_id);
 CREATE INDEX idx_announcements_author_id ON announcements(author_id);
