@@ -191,12 +191,13 @@ CREATE TRIGGER set_resources_updated_at
 -- ====================================================================================
 -- USER PROGRESS TRACKING
 -- ====================================================================================
-
 CREATE TABLE user_video_progress (
     user_id UUID REFERENCES profiles(id) ON DELETE CASCADE ON UPDATE CASCADE,
     video_id UUID REFERENCES videos(id) ON DELETE CASCADE ON UPDATE CASCADE,
-    last_position_seconds INTEGER DEFAULT 0 NOT NULL CHECK (last_position_seconds >= 0),
-    total_watch_time_seconds INTEGER DEFAULT 0 NOT NULL CHECK (total_watch_time_seconds >= 0),
+    last_position INTERVAL DEFAULT '0 seconds'::interval NOT NULL 
+        CHECK (last_position >= '0 seconds'::interval),
+    total_watch_time INTERVAL DEFAULT '0 seconds'::interval NOT NULL 
+        CHECK (total_watch_time >= '0 seconds'::interval),
     is_completed BOOLEAN DEFAULT FALSE NOT NULL,
     completed_at TIMESTAMPTZ,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -204,8 +205,8 @@ CREATE TABLE user_video_progress (
     PRIMARY KEY (user_id, video_id)
 );
 COMMENT ON TABLE user_video_progress IS 'Stateful record of client-side playback telemetry and definitive completion metrics.';
-COMMENT ON COLUMN user_video_progress.last_position_seconds IS 'Maintains the exact playhead coordinate for persistent resume functionality.';
-COMMENT ON COLUMN user_video_progress.total_watch_time_seconds IS 'Aggregates total engagement duration, facilitating advanced retention analytics.';
+COMMENT ON COLUMN user_video_progress.last_position IS 'Maintains the exact playhead coordinate as an INTERVAL for persistent resume functionality.';
+COMMENT ON COLUMN user_video_progress.total_watch_time IS 'Aggregates total engagement duration as an INTERVAL, facilitating advanced retention analytics.';
 
 CREATE INDEX idx_user_video_progress_video_id ON user_video_progress(video_id);
 
