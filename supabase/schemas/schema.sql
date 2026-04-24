@@ -224,7 +224,7 @@ CREATE TRIGGER set_user_video_progress_updated_at
 -- ====================================================================================
 -- COMMUNICATIONS & FORUM
 -- ====================================================================================
-
+AT
 CREATE TABLE announcements (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     class_id UUID NOT NULL REFERENCES classes(id) ON DELETE CASCADE ON UPDATE CASCADE,
@@ -310,9 +310,67 @@ CREATE TRIGGER set_forum_replies_updated_at
     FOR EACH ROW EXECUTE PROCEDURE public.set_current_timestamp_updated_at();
 
 -- ====================================================================================
--- ROW LEVEL SECURITY (RLS) INITIALISATION
+-- ANTI-TAMPERING TRIGGERS
 -- ====================================================================================
 
+CREATE OR REPLACE FUNCTION public.prevent_immutable_modifications()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'UPDATE' THEN
+        IF NEW.id IS DISTINCT FROM OLD.id THEN
+            RAISE EXCEPTION 'SECURITY VIOLATION: Primary key modifications are strictly prohibited.';
+        END IF;
+        IF NEW.created_at IS DISTINCT FROM OLD.created_at THEN
+            RAISE EXCEPTION 'SECURITY VIOLATION: created_at timestamp modifications are strictly prohibited.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+COMMENT ON FUNCTION public.prevent_immutable_modifications() IS 'Hard-rejects any attempt to modify immutable tracking/identity columns.';
+
+-- Apply anti-tampering to all tables
+CREATE TRIGGER enforce_immutability_profiles BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
+CREATE TRIGGER enforce_immutability_classes BEFORE UPDATE ON classes FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
+CREATE TRIGGER enforce_immutability_topics BEFORE UPDATE ON topics FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
+CREATE TRIGGER enforce_immutability_subtopics BEFORE UPDATE ON subtopics FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
+CREATE TRIGGER enforce_immutability_videos BEFORE UPDATE ON videos FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
+CREATE TRIGGER enforce_immutability_resources BEFORE UPDATE ON resources FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
+CREATE TRIGGER enforce_immutability_announcements BEFORE UPDATE ON announcements FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
+CREATE TRIGGER enforce_immutability_forum_posts BEFORE UPDATE ON forum_posts FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
+CREATE TRIGGER enforce_immutability_forum_replies BEFORE UPDATE ON forum_replies FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
+
+-- ====================================================================================
+-- SECURITY HELPER FUNCTIONS
+-- ====================================================================================
+
+CREATE OR REPLACE FUNCTION public.get_user_role()
+RETURNS public.user_role AS $$
+DECLARE
+    v_role public.user_role;
+BEGIN
+    SELECT role INTO v_role FROM public.profiles WHERE id = auth.uid();
+    RETURN COALESCE(v_role, 'student'::public.user_role);
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+COMMENT ON FUNCTION public.get_user_role() IS 'Bypasses RLS to securely fetch the requesting user role for policy evaluation.';
+
+CREATE OR REPLACE FUNCTION public.get_user_class_ids()
+RETURNS SETOF UUID AS $$
+BEGIN
+    RETURN QUERY
+        SELECT class_id FROM public.class_enrollments WHERE user_id = auth.uid()
+        UNION
+        SELECT id FROM public.classes WHERE tutor_id = auth.uid();
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+COMMENT ON FUNCTION public.get_user_class_ids() IS 'Calculates the authorization perimeter for class-bound resources.';
+
+-- ====================================================================================
+-- RLS ACTIVATION (DEFAULT DENY & FORCE ENFORCEMENT)
+-- ====================================================================================
+
+-- Enable RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
 ALTER TABLE classes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE class_enrollments ENABLE ROW LEVEL SECURITY;
@@ -324,3 +382,292 @@ ALTER TABLE user_video_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_replies ENABLE ROW LEVEL SECURITY;
+
+-- Force RLS ensures even table owners respect the policies
+ALTER TABLE profiles FORCE ROW LEVEL SECURITY;
+ALTER TABLE classes FORCE ROW LEVEL SECURITY;
+ALTER TABLE class_enrollments FORCE ROW LEVEL SECURITY;
+ALTER TABLE topics FORCE ROW LEVEL SECURITY;
+ALTER TABLE subtopics FORCE ROW LEVEL SECURITY;
+ALTER TABLE videos FORCE ROW LEVEL SECURITY;
+ALTER TABLE resources FORCE ROW LEVEL SECURITY;
+ALTER TABLE user_video_progress FORCE ROW LEVEL SECURITY;
+ALTER TABLE announcements FORCE ROW LEVEL SECURITY;
+ALTER TABLE forum_posts FORCE ROW LEVEL SECURITY;
+ALTER TABLE forum_replies FORCE ROW LEVEL SECURITY;
+
+-- ====================================================================================
+-- ROW LEVEL SECURITY POLICIES
+-- ====================================================================================
+
+-- ------------------------------------------------------------------------------------
+-- PROFILES
+-- ------------------------------------------------------------------------------------
+CREATE POLICY "Profiles_Select_AllAuth" ON profiles 
+    FOR SELECT USING (auth.role() = 'authenticated');
+
+CREATE POLICY "Profiles_Update_SelfOrAdmin" ON profiles 
+    FOR UPDATE USING (public.get_user_role() = 'admin' OR auth.uid() = id)
+    WITH CHECK (
+        public.get_user_role() = 'admin' OR 
+        (auth.uid() = id AND NEW.role = OLD.role)
+    );
+
+-- ------------------------------------------------------------------------------------
+-- CLASSES
+-- ------------------------------------------------------------------------------------
+CREATE POLICY "Classes_Select_Authorized" ON classes 
+    FOR SELECT USING (public.get_user_role() = 'admin' OR id IN (SELECT public.get_user_class_ids()));
+
+CREATE POLICY "Classes_Update_TutorOrAdmin" ON classes 
+    FOR UPDATE USING (public.get_user_role() = 'admin' OR tutor_id = auth.uid())
+    WITH CHECK (public.get_user_role() = 'admin' OR tutor_id = auth.uid());
+
+CREATE POLICY "Classes_Insert_Admin" ON classes FOR INSERT WITH CHECK (public.get_user_role() = 'admin');
+CREATE POLICY "Classes_Delete_Admin" ON classes FOR DELETE USING (public.get_user_role() = 'admin');
+
+-- ------------------------------------------------------------------------------------
+-- CLASS ENROLLMENTS
+-- ------------------------------------------------------------------------------------
+CREATE POLICY "Enrollments_Select_Authorized" ON class_enrollments 
+    FOR SELECT USING (
+        public.get_user_role() = 'admin' OR 
+        user_id = auth.uid() OR 
+        EXISTS (SELECT 1 FROM classes WHERE id = class_enrollments.class_id AND tutor_id = auth.uid())
+    );
+
+CREATE POLICY "Enrollments_Insert_TutorOrAdmin" ON class_enrollments 
+    FOR INSERT WITH CHECK (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (SELECT 1 FROM classes WHERE id = class_enrollments.class_id AND tutor_id = auth.uid())
+    );
+
+CREATE POLICY "Enrollments_Delete_Authorized" ON class_enrollments 
+    FOR DELETE USING (
+        public.get_user_role() = 'admin' OR 
+        user_id = auth.uid() OR 
+        EXISTS (SELECT 1 FROM classes WHERE id = class_enrollments.class_id AND tutor_id = auth.uid())
+    );
+
+-- ------------------------------------------------------------------------------------
+-- CURRICULUM HIERARCHY
+-- ------------------------------------------------------------------------------------
+
+-- TOPICS
+CREATE POLICY "Topics_Select_Authorized" ON topics 
+    FOR SELECT USING (public.get_user_role() = 'admin' OR class_id IN (SELECT public.get_user_class_ids()));
+
+CREATE POLICY "Topics_Modify_TutorOrAdmin" ON topics 
+    FOR ALL USING (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (SELECT 1 FROM classes WHERE id = topics.class_id AND tutor_id = auth.uid())
+    )
+    WITH CHECK (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (SELECT 1 FROM classes WHERE id = topics.class_id AND tutor_id = auth.uid())
+    );
+
+-- SUBTOPICS
+CREATE POLICY "Subtopics_Select_Authorized" ON subtopics 
+    FOR SELECT USING (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (
+            SELECT 1 FROM topics t 
+            WHERE t.id = subtopics.topic_id AND t.class_id IN (SELECT public.get_user_class_ids())
+        )
+    );
+
+CREATE POLICY "Subtopics_Modify_TutorOrAdmin" ON subtopics 
+    FOR ALL USING (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (
+            SELECT 1 FROM topics t 
+            JOIN classes c ON c.id = t.class_id 
+            WHERE t.id = subtopics.topic_id AND c.tutor_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (
+            SELECT 1 FROM topics t 
+            JOIN classes c ON c.id = t.class_id 
+            WHERE t.id = subtopics.topic_id AND c.tutor_id = auth.uid()
+        )
+    );
+
+-- VIDEOS
+CREATE POLICY "Videos_Select_Authorized" ON videos 
+    FOR SELECT USING (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (
+            SELECT 1 FROM subtopics s 
+            JOIN topics t ON t.id = s.topic_id 
+            WHERE s.id = videos.subtopic_id AND t.class_id IN (SELECT public.get_user_class_ids())
+        )
+    );
+
+CREATE POLICY "Videos_Modify_TutorOrAdmin" ON videos 
+    FOR ALL USING (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (
+            SELECT 1 FROM subtopics s 
+            JOIN topics t ON t.id = s.topic_id 
+            JOIN classes c ON c.id = t.class_id 
+            WHERE s.id = videos.subtopic_id AND c.tutor_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (
+            SELECT 1 FROM subtopics s 
+            JOIN topics t ON t.id = s.topic_id 
+            JOIN classes c ON c.id = t.class_id 
+            WHERE s.id = videos.subtopic_id AND c.tutor_id = auth.uid()
+        )
+    );
+
+-- RESOURCES
+CREATE POLICY "Resources_Select_Authorized" ON resources 
+    FOR SELECT USING (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (SELECT 1 FROM topics t WHERE t.id = resources.topic_id AND t.class_id IN (SELECT public.get_user_class_ids())) OR
+        EXISTS (
+            SELECT 1 FROM subtopics s 
+            JOIN topics t ON t.id = s.topic_id 
+            WHERE s.id = resources.subtopic_id AND t.class_id IN (SELECT public.get_user_class_ids())
+        )
+    );
+
+CREATE POLICY "Resources_Modify_TutorOrAdmin" ON resources 
+    FOR ALL USING (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (
+            SELECT 1 FROM topics t 
+            JOIN classes c ON c.id = t.class_id 
+            WHERE t.id = resources.topic_id AND c.tutor_id = auth.uid()
+        ) OR
+        EXISTS (
+            SELECT 1 FROM subtopics s 
+            JOIN topics t ON t.id = s.topic_id 
+            JOIN classes c ON c.id = t.class_id 
+            WHERE s.id = resources.subtopic_id AND c.tutor_id = auth.uid()
+        )
+    )
+    WITH CHECK (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (
+            SELECT 1 FROM topics t 
+            JOIN classes c ON c.id = t.class_id 
+            WHERE t.id = resources.topic_id AND c.tutor_id = auth.uid()
+        ) OR
+        EXISTS (
+            SELECT 1 FROM subtopics s 
+            JOIN topics t ON t.id = s.topic_id 
+            JOIN classes c ON c.id = t.class_id 
+            WHERE s.id = resources.subtopic_id AND c.tutor_id = auth.uid()
+        )
+    );
+
+-- ------------------------------------------------------------------------------------
+-- USER VIDEO PROGRESS
+-- ------------------------------------------------------------------------------------
+CREATE POLICY "Progress_Select_Authorized" ON user_video_progress 
+    FOR SELECT USING (
+        public.get_user_role() = 'admin' OR 
+        user_id = auth.uid() OR 
+        EXISTS (
+            SELECT 1 FROM videos v 
+            JOIN subtopics s ON s.id = v.subtopic_id 
+            JOIN topics t ON t.id = s.topic_id 
+            JOIN classes c ON c.id = t.class_id 
+            WHERE v.id = user_video_progress.video_id AND c.tutor_id = auth.uid()
+        )
+    );
+
+CREATE POLICY "Progress_Insert_Self" ON user_video_progress 
+    FOR INSERT WITH CHECK (user_id = auth.uid());
+
+CREATE POLICY "Progress_Update_Self" ON user_video_progress 
+    FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+
+-- ------------------------------------------------------------------------------------
+-- ANNOUNCEMENTS & FORUMS
+-- ------------------------------------------------------------------------------------
+CREATE POLICY "Announcements_Select_Authorized" ON announcements 
+    FOR SELECT USING (public.get_user_role() = 'admin' OR class_id IN (SELECT public.get_user_class_ids()));
+
+CREATE POLICY "Announcements_Insert_Author" ON announcements 
+    FOR INSERT WITH CHECK (
+        public.get_user_role() = 'admin' OR 
+        (author_id = auth.uid() AND EXISTS (SELECT 1 FROM classes WHERE id = announcements.class_id AND tutor_id = auth.uid()))
+    );
+
+CREATE POLICY "Announcements_UpdateDelete_Author" ON announcements 
+    FOR ALL USING (public.get_user_role() = 'admin' OR author_id = auth.uid())
+    WITH CHECK (public.get_user_role() = 'admin' OR author_id = auth.uid());
+
+-- FORUM POSTS
+CREATE POLICY "ForumPosts_Select_Authorized" ON forum_posts 
+    FOR SELECT USING (public.get_user_role() = 'admin' OR class_id IN (SELECT public.get_user_class_ids()));
+
+CREATE POLICY "ForumPosts_Insert_Authorized" ON forum_posts 
+    FOR INSERT WITH CHECK (
+        author_id = auth.uid() AND 
+        (public.get_user_role() = 'admin' OR class_id IN (SELECT public.get_user_class_ids()))
+    );
+
+CREATE POLICY "ForumPosts_Update_Authorized" ON forum_posts 
+    FOR UPDATE USING (
+        public.get_user_role() = 'admin' OR 
+        author_id = auth.uid() OR 
+        EXISTS (SELECT 1 FROM classes WHERE id = forum_posts.class_id AND tutor_id = auth.uid())
+    )
+    WITH CHECK (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (SELECT 1 FROM classes WHERE id = forum_posts.class_id AND tutor_id = auth.uid()) OR
+        (author_id = auth.uid() AND NEW.author_id = OLD.author_id AND NEW.class_id = OLD.class_id)
+    );
+
+CREATE POLICY "ForumPosts_Delete_Authorized" ON forum_posts 
+    FOR DELETE USING (
+        public.get_user_role() = 'admin' OR 
+        author_id = auth.uid() OR 
+        EXISTS (SELECT 1 FROM classes WHERE id = forum_posts.class_id AND tutor_id = auth.uid())
+    );
+
+-- FORUM REPLIES
+CREATE POLICY "ForumReplies_Select_Authorized" ON forum_replies 
+    FOR SELECT USING (
+        public.get_user_role() = 'admin' OR 
+        EXISTS (
+            SELECT 1 FROM forum_posts fp 
+            WHERE fp.id = forum_replies.post_id AND fp.class_id IN (SELECT public.get_user_class_ids())
+        )
+    );
+
+CREATE POLICY "ForumReplies_Insert_Authorized" ON forum_replies 
+    FOR INSERT WITH CHECK (
+        author_id = auth.uid() AND 
+        (
+            public.get_user_role() = 'admin' OR 
+            EXISTS (
+                SELECT 1 FROM forum_posts fp 
+                WHERE fp.id = forum_replies.post_id AND fp.class_id IN (SELECT public.get_user_class_ids())
+            )
+        )
+    );
+
+CREATE POLICY "ForumReplies_Update_Author" ON forum_replies 
+    FOR UPDATE USING (public.get_user_role() = 'admin' OR author_id = auth.uid())
+    WITH CHECK (public.get_user_role() = 'admin' OR author_id = auth.uid());
+
+CREATE POLICY "ForumReplies_Delete_Authorized" ON forum_replies 
+    FOR DELETE USING (
+        public.get_user_role() = 'admin' OR 
+        author_id = auth.uid() OR 
+        EXISTS (
+            SELECT 1 FROM forum_posts fp 
+            JOIN classes c ON c.id = fp.class_id 
+            WHERE fp.id = forum_replies.post_id AND c.tutor_id = auth.uid()
+        )
+    );
