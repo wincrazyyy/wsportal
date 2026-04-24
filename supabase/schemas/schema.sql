@@ -308,7 +308,6 @@ CREATE INDEX idx_forum_replies_author_id ON forum_replies(author_id);
 CREATE TRIGGER set_forum_replies_updated_at
     BEFORE UPDATE ON forum_replies
     FOR EACH ROW EXECUTE PROCEDURE public.set_current_timestamp_updated_at();
-
 -- ====================================================================================
 -- ANTI-TAMPERING TRIGGERS
 -- ====================================================================================
@@ -327,7 +326,7 @@ BEGIN
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql;
-COMMENT ON FUNCTION public.prevent_immutable_modifications() IS 'Hard-rejects any attempt to modify immutable tracking/identity columns.';
+COMMENT ON FUNCTION public.prevent_immutable_modifications() IS 'Hard-rejects any attempt to modify immutable tracking and identity columns (id, created_at) to ensure cryptographic audit integrity.';
 
 -- Apply anti-tampering to all tables
 CREATE TRIGGER enforce_immutability_profiles BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
@@ -353,7 +352,7 @@ BEGIN
     RETURN COALESCE(v_role, 'student'::public.user_role);
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-COMMENT ON FUNCTION public.get_user_role() IS 'Bypasses RLS to securely fetch the requesting user role for policy evaluation.';
+COMMENT ON FUNCTION public.get_user_role() IS 'Bypasses RLS to securely fetch the requesting user role for policy evaluation. Marked as STABLE to cache results per-query and prevent performance degradation during large RLS scans.';
 
 CREATE OR REPLACE FUNCTION public.get_user_class_ids()
 RETURNS SETOF UUID AS $$
@@ -364,7 +363,7 @@ BEGIN
         SELECT id FROM public.classes WHERE tutor_id = auth.uid();
 END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
-COMMENT ON FUNCTION public.get_user_class_ids() IS 'Calculates the authorization perimeter for class-bound resources.';
+COMMENT ON FUNCTION public.get_user_class_ids() IS 'Calculates the authorization perimeter for class-bound resources, mapping a user to all enrolled or tutored class IDs. Marked as STABLE for query optimization.';
 
 -- ====================================================================================
 -- RLS ACTIVATION (DEFAULT DENY & FORCE ENFORCEMENT)
@@ -405,6 +404,7 @@ ALTER TABLE forum_replies FORCE ROW LEVEL SECURITY;
 -- ------------------------------------------------------------------------------------
 CREATE POLICY "Profiles_Select_AllAuth" ON profiles 
     FOR SELECT USING (auth.role() = 'authenticated');
+COMMENT ON POLICY "Profiles_Select_AllAuth" ON profiles IS 'Permits read access to all authenticated users for public profile and forum rendering.';
 
 CREATE POLICY "Profiles_Update_SelfOrAdmin" ON profiles 
     FOR UPDATE USING (public.get_user_role() = 'admin' OR auth.uid() = id)
@@ -412,19 +412,25 @@ CREATE POLICY "Profiles_Update_SelfOrAdmin" ON profiles
         public.get_user_role() = 'admin' OR 
         (auth.uid() = id AND NEW.role = OLD.role)
     );
+COMMENT ON POLICY "Profiles_Update_SelfOrAdmin" ON profiles IS 'Restricts profile modifications to the owning user or administrators, explicitly preventing role escalation by standard users via the WITH CHECK constraint.';
 
 -- ------------------------------------------------------------------------------------
 -- CLASSES
 -- ------------------------------------------------------------------------------------
 CREATE POLICY "Classes_Select_Authorized" ON classes 
     FOR SELECT USING (public.get_user_role() = 'admin' OR id IN (SELECT public.get_user_class_ids()));
+COMMENT ON POLICY "Classes_Select_Authorized" ON classes IS 'Restricts class visibility strictly to enrolled students, assigned tutors, and global administrators.';
 
 CREATE POLICY "Classes_Update_TutorOrAdmin" ON classes 
     FOR UPDATE USING (public.get_user_role() = 'admin' OR tutor_id = auth.uid())
     WITH CHECK (public.get_user_role() = 'admin' OR tutor_id = auth.uid());
+COMMENT ON POLICY "Classes_Update_TutorOrAdmin" ON classes IS 'Delegates class metadata modification rights to the assigned tutor and administrators.';
 
 CREATE POLICY "Classes_Insert_Admin" ON classes FOR INSERT WITH CHECK (public.get_user_role() = 'admin');
+COMMENT ON POLICY "Classes_Insert_Admin" ON classes IS 'Restricts the creation of new curriculum containers to administrators.';
+
 CREATE POLICY "Classes_Delete_Admin" ON classes FOR DELETE USING (public.get_user_role() = 'admin');
+COMMENT ON POLICY "Classes_Delete_Admin" ON classes IS 'Restricts the deletion of classes to administrators to prevent accidental hierarchical cascades.';
 
 -- ------------------------------------------------------------------------------------
 -- CLASS ENROLLMENTS
@@ -435,12 +441,14 @@ CREATE POLICY "Enrollments_Select_Authorized" ON class_enrollments
         user_id = auth.uid() OR 
         EXISTS (SELECT 1 FROM classes WHERE id = class_enrollments.class_id AND tutor_id = auth.uid())
     );
+COMMENT ON POLICY "Enrollments_Select_Authorized" ON class_enrollments IS 'Allows users to view their own enrollments, whilst granting tutors visibility over their class rosters.';
 
 CREATE POLICY "Enrollments_Insert_TutorOrAdmin" ON class_enrollments 
     FOR INSERT WITH CHECK (
         public.get_user_role() = 'admin' OR 
         EXISTS (SELECT 1 FROM classes WHERE id = class_enrollments.class_id AND tutor_id = auth.uid())
     );
+COMMENT ON POLICY "Enrollments_Insert_TutorOrAdmin" ON class_enrollments IS 'Restricts the addition of students to a roster exclusively to the assigned tutor and administrators.';
 
 CREATE POLICY "Enrollments_Delete_Authorized" ON class_enrollments 
     FOR DELETE USING (
@@ -448,6 +456,7 @@ CREATE POLICY "Enrollments_Delete_Authorized" ON class_enrollments
         user_id = auth.uid() OR 
         EXISTS (SELECT 1 FROM classes WHERE id = class_enrollments.class_id AND tutor_id = auth.uid())
     );
+COMMENT ON POLICY "Enrollments_Delete_Authorized" ON class_enrollments IS 'Permits self-unenrollment by students, and roster management by tutors/administrators.';
 
 -- ------------------------------------------------------------------------------------
 -- CURRICULUM HIERARCHY
@@ -456,6 +465,7 @@ CREATE POLICY "Enrollments_Delete_Authorized" ON class_enrollments
 -- TOPICS
 CREATE POLICY "Topics_Select_Authorized" ON topics 
     FOR SELECT USING (public.get_user_role() = 'admin' OR class_id IN (SELECT public.get_user_class_ids()));
+COMMENT ON POLICY "Topics_Select_Authorized" ON topics IS 'Inherits visibility boundaries from the parent class enrollment status.';
 
 CREATE POLICY "Topics_Modify_TutorOrAdmin" ON topics 
     FOR ALL USING (
@@ -466,6 +476,7 @@ CREATE POLICY "Topics_Modify_TutorOrAdmin" ON topics
         public.get_user_role() = 'admin' OR 
         EXISTS (SELECT 1 FROM classes WHERE id = topics.class_id AND tutor_id = auth.uid())
     );
+COMMENT ON POLICY "Topics_Modify_TutorOrAdmin" ON topics IS 'Delegates structural modification rights (Insert/Update/Delete) for topics to the parent class tutor and administrators.';
 
 -- SUBTOPICS
 CREATE POLICY "Subtopics_Select_Authorized" ON subtopics 
@@ -476,6 +487,7 @@ CREATE POLICY "Subtopics_Select_Authorized" ON subtopics
             WHERE t.id = subtopics.topic_id AND t.class_id IN (SELECT public.get_user_class_ids())
         )
     );
+COMMENT ON POLICY "Subtopics_Select_Authorized" ON subtopics IS 'Inherits visibility boundaries from the parent topic hierarchy via an EXISTS join.';
 
 CREATE POLICY "Subtopics_Modify_TutorOrAdmin" ON subtopics 
     FOR ALL USING (
@@ -494,6 +506,7 @@ CREATE POLICY "Subtopics_Modify_TutorOrAdmin" ON subtopics
             WHERE t.id = subtopics.topic_id AND c.tutor_id = auth.uid()
         )
     );
+COMMENT ON POLICY "Subtopics_Modify_TutorOrAdmin" ON subtopics IS 'Delegates structural modification rights (Insert/Update/Delete) for subtopics to the parent class tutor via hierarchical resolution.';
 
 -- VIDEOS
 CREATE POLICY "Videos_Select_Authorized" ON videos 
@@ -505,6 +518,7 @@ CREATE POLICY "Videos_Select_Authorized" ON videos
             WHERE s.id = videos.subtopic_id AND t.class_id IN (SELECT public.get_user_class_ids())
         )
     );
+COMMENT ON POLICY "Videos_Select_Authorized" ON videos IS 'Inherits visibility boundaries from the parent curriculum structure.';
 
 CREATE POLICY "Videos_Modify_TutorOrAdmin" ON videos 
     FOR ALL USING (
@@ -525,6 +539,7 @@ CREATE POLICY "Videos_Modify_TutorOrAdmin" ON videos
             WHERE s.id = videos.subtopic_id AND c.tutor_id = auth.uid()
         )
     );
+COMMENT ON POLICY "Videos_Modify_TutorOrAdmin" ON videos IS 'Delegates video asset management (Insert/Update/Delete) to the parent class tutor via hierarchical resolution.';
 
 -- RESOURCES
 CREATE POLICY "Resources_Select_Authorized" ON resources 
@@ -537,6 +552,7 @@ CREATE POLICY "Resources_Select_Authorized" ON resources
             WHERE s.id = resources.subtopic_id AND t.class_id IN (SELECT public.get_user_class_ids())
         )
     );
+COMMENT ON POLICY "Resources_Select_Authorized" ON resources IS 'Resolves visibility boundaries dynamically depending on whether the resource is bound to a topic or a subtopic.';
 
 CREATE POLICY "Resources_Modify_TutorOrAdmin" ON resources 
     FOR ALL USING (
@@ -567,6 +583,7 @@ CREATE POLICY "Resources_Modify_TutorOrAdmin" ON resources
             WHERE s.id = resources.subtopic_id AND c.tutor_id = auth.uid()
         )
     );
+COMMENT ON POLICY "Resources_Modify_TutorOrAdmin" ON resources IS 'Delegates file asset management to the parent class tutor, dynamically evaluating the polymorphic parent linkage.';
 
 -- ------------------------------------------------------------------------------------
 -- USER VIDEO PROGRESS
@@ -583,38 +600,46 @@ CREATE POLICY "Progress_Select_Authorized" ON user_video_progress
             WHERE v.id = user_video_progress.video_id AND c.tutor_id = auth.uid()
         )
     );
+COMMENT ON POLICY "Progress_Select_Authorized" ON user_video_progress IS 'Permits students to fetch their own telemetry state, while granting tutors visibility over analytics for their owned classes.';
 
 CREATE POLICY "Progress_Insert_Self" ON user_video_progress 
     FOR INSERT WITH CHECK (user_id = auth.uid());
+COMMENT ON POLICY "Progress_Insert_Self" ON user_video_progress IS 'Restricts generation of playback telemetry strictly to the authenticated user generating the state.';
 
 CREATE POLICY "Progress_Update_Self" ON user_video_progress 
     FOR UPDATE USING (user_id = auth.uid()) WITH CHECK (user_id = auth.uid());
+COMMENT ON POLICY "Progress_Update_Self" ON user_video_progress IS 'Restricts updating of playback telemetry strictly to the authenticated user generating the state.';
 
 -- ------------------------------------------------------------------------------------
 -- ANNOUNCEMENTS & FORUMS
 -- ------------------------------------------------------------------------------------
 CREATE POLICY "Announcements_Select_Authorized" ON announcements 
     FOR SELECT USING (public.get_user_role() = 'admin' OR class_id IN (SELECT public.get_user_class_ids()));
+COMMENT ON POLICY "Announcements_Select_Authorized" ON announcements IS 'Inherits visibility boundaries from the parent class enrollment status.';
 
 CREATE POLICY "Announcements_Insert_Author" ON announcements 
     FOR INSERT WITH CHECK (
         public.get_user_role() = 'admin' OR 
         (author_id = auth.uid() AND EXISTS (SELECT 1 FROM classes WHERE id = announcements.class_id AND tutor_id = auth.uid()))
     );
+COMMENT ON POLICY "Announcements_Insert_Author" ON announcements IS 'Secures unidirectional broadcast capability exclusively to the assigned class tutor and administrators.';
 
 CREATE POLICY "Announcements_UpdateDelete_Author" ON announcements 
     FOR ALL USING (public.get_user_role() = 'admin' OR author_id = auth.uid())
     WITH CHECK (public.get_user_role() = 'admin' OR author_id = auth.uid());
+COMMENT ON POLICY "Announcements_UpdateDelete_Author" ON announcements IS 'Grants broadcast modification rights strictly to the original authoring tutor or global administrators.';
 
 -- FORUM POSTS
 CREATE POLICY "ForumPosts_Select_Authorized" ON forum_posts 
     FOR SELECT USING (public.get_user_role() = 'admin' OR class_id IN (SELECT public.get_user_class_ids()));
+COMMENT ON POLICY "ForumPosts_Select_Authorized" ON forum_posts IS 'Confines discussion visibility strictly to users enrolled in or tutoring the related class.';
 
 CREATE POLICY "ForumPosts_Insert_Authorized" ON forum_posts 
     FOR INSERT WITH CHECK (
         author_id = auth.uid() AND 
         (public.get_user_role() = 'admin' OR class_id IN (SELECT public.get_user_class_ids()))
     );
+COMMENT ON POLICY "ForumPosts_Insert_Authorized" ON forum_posts IS 'Permits thread creation by explicitly enforcing the author identity and validating active class enrollment.';
 
 CREATE POLICY "ForumPosts_Update_Authorized" ON forum_posts 
     FOR UPDATE USING (
@@ -627,6 +652,7 @@ CREATE POLICY "ForumPosts_Update_Authorized" ON forum_posts
         EXISTS (SELECT 1 FROM classes WHERE id = forum_posts.class_id AND tutor_id = auth.uid()) OR
         (author_id = auth.uid() AND NEW.author_id = OLD.author_id AND NEW.class_id = OLD.class_id)
     );
+COMMENT ON POLICY "ForumPosts_Update_Authorized" ON forum_posts IS 'Grants editing rights to the original author (blocking reassignment of ownership), whilst permitting tutors to edit state modifiers like is_resolved.';
 
 CREATE POLICY "ForumPosts_Delete_Authorized" ON forum_posts 
     FOR DELETE USING (
@@ -634,6 +660,7 @@ CREATE POLICY "ForumPosts_Delete_Authorized" ON forum_posts
         author_id = auth.uid() OR 
         EXISTS (SELECT 1 FROM classes WHERE id = forum_posts.class_id AND tutor_id = auth.uid())
     );
+COMMENT ON POLICY "ForumPosts_Delete_Authorized" ON forum_posts IS 'Permits content deletion by the original author, acting tutors (for moderation), or global administrators.';
 
 -- FORUM REPLIES
 CREATE POLICY "ForumReplies_Select_Authorized" ON forum_replies 
@@ -644,6 +671,7 @@ CREATE POLICY "ForumReplies_Select_Authorized" ON forum_replies
             WHERE fp.id = forum_replies.post_id AND fp.class_id IN (SELECT public.get_user_class_ids())
         )
     );
+COMMENT ON POLICY "ForumReplies_Select_Authorized" ON forum_replies IS 'Resolves reply visibility dynamically by validating access to the parent post context.';
 
 CREATE POLICY "ForumReplies_Insert_Authorized" ON forum_replies 
     FOR INSERT WITH CHECK (
@@ -656,10 +684,12 @@ CREATE POLICY "ForumReplies_Insert_Authorized" ON forum_replies
             )
         )
     );
+COMMENT ON POLICY "ForumReplies_Insert_Authorized" ON forum_replies IS 'Permits reply creation by enforcing author identity and validating access to the parent post context.';
 
 CREATE POLICY "ForumReplies_Update_Author" ON forum_replies 
     FOR UPDATE USING (public.get_user_role() = 'admin' OR author_id = auth.uid())
     WITH CHECK (public.get_user_role() = 'admin' OR author_id = auth.uid());
+COMMENT ON POLICY "ForumReplies_Update_Author" ON forum_replies IS 'Strictly isolates reply editing capabilities to the original author, preventing tutors from modifying student discourse.';
 
 CREATE POLICY "ForumReplies_Delete_Authorized" ON forum_replies 
     FOR DELETE USING (
@@ -671,3 +701,4 @@ CREATE POLICY "ForumReplies_Delete_Authorized" ON forum_replies
             WHERE fp.id = forum_replies.post_id AND c.tutor_id = auth.uid()
         )
     );
+COMMENT ON POLICY "ForumReplies_Delete_Authorized" ON forum_replies IS 'Permits reply deletion by the original author, acting tutors (for moderation), or global administrators.';
