@@ -29,7 +29,11 @@ BEGIN
         NEW.raw_user_meta_data->>'first_name', 
         NEW.raw_user_meta_data->>'last_name', 
         NEW.raw_user_meta_data->>'display_name',
-        COALESCE((NEW.raw_user_meta_data->>'role')::user_role, 'student'::user_role)
+        CASE 
+            WHEN NEW.raw_user_meta_data->>'role' IN ('student', 'teacher', 'admin') 
+            THEN (NEW.raw_user_meta_data->>'role')::user_role
+            ELSE 'student'::user_role 
+        END
     );
     RETURN NEW;
 END;
@@ -271,7 +275,7 @@ CREATE TABLE forum_posts (
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     CONSTRAINT chk_forum_post_video_context CHECK (
-        (type = 'general') OR 
+        (type = 'general' AND video_id IS NULL) OR 
         (type = 'video_qa' AND video_id IS NOT NULL)
     )
 );
@@ -329,6 +333,37 @@ END;
 $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION public.prevent_immutable_modifications() IS 'Hard-rejects any attempt to modify immutable tracking and identity columns (id, created_at) to ensure cryptographic audit integrity.';
 
+CREATE OR REPLACE FUNCTION public.protect_profile_role()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- If the user is NOT an admin, prevent them from changing their own role
+    IF public.get_user_role() != 'admin' THEN
+        IF NEW.role IS DISTINCT FROM OLD.role THEN
+            RAISE EXCEPTION 'SECURITY VIOLATION: Only admins can modify user roles.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+COMMENT ON FUNCTION public.protect_profile_role() IS 'Prevents non-admins from escalating or changing their own application roles.';
+
+CREATE OR REPLACE FUNCTION public.protect_forum_post_ownership()
+RETURNS TRIGGER AS $$
+BEGIN
+    -- If the user is NOT an admin, prevent them from reassigning ownership or class
+    IF public.get_user_role() != 'admin' THEN
+        IF NEW.author_id IS DISTINCT FROM OLD.author_id THEN
+            RAISE EXCEPTION 'SECURITY VIOLATION: Post authorship cannot be reassigned.';
+        END IF;
+        IF NEW.class_id IS DISTINCT FROM OLD.class_id THEN
+            RAISE EXCEPTION 'SECURITY VIOLATION: Posts cannot be moved between classes.';
+        END IF;
+    END IF;
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+COMMENT ON FUNCTION public.protect_forum_post_ownership() IS 'Prevents users and tutors from tampering with the original authorship or class association of a forum post.';
+
 -- Apply anti-tampering to all tables
 CREATE TRIGGER enforce_immutability_profiles BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
 CREATE TRIGGER enforce_immutability_classes BEFORE UPDATE ON classes FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
@@ -339,6 +374,10 @@ CREATE TRIGGER enforce_immutability_resources BEFORE UPDATE ON resources FOR EAC
 CREATE TRIGGER enforce_immutability_announcements BEFORE UPDATE ON announcements FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
 CREATE TRIGGER enforce_immutability_forum_posts BEFORE UPDATE ON forum_posts FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
 CREATE TRIGGER enforce_immutability_forum_replies BEFORE UPDATE ON forum_replies FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
+
+-- Apply specific column protection triggers
+CREATE TRIGGER enforce_role_security BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE PROCEDURE public.protect_profile_role();
+CREATE TRIGGER enforce_forum_post_security BEFORE UPDATE ON forum_posts FOR EACH ROW EXECUTE PROCEDURE public.protect_forum_post_ownership();
 
 -- ====================================================================================
 -- SECURITY HELPER FUNCTIONS
@@ -366,17 +405,21 @@ END;
 $$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
 COMMENT ON FUNCTION public.get_user_class_ids() IS 'Calculates the authorization perimeter for class-bound resources, mapping a user to all enrolled or tutored class IDs. Marked as STABLE for query optimization.';
 
--- ====================================================================================
--- RLS ACTIVATION & COLUMN-LEVEL SECURITY
--- ====================================================================================
+CREATE OR REPLACE FUNCTION public.is_class_tutor(p_class_id UUID)
+RETURNS BOOLEAN AS $$
+BEGIN
+    -- Executes as the function owner, bypassing RLS on the 'classes' table
+    RETURN EXISTS (
+        SELECT 1 FROM public.classes 
+        WHERE id = p_class_id AND tutor_id = auth.uid()
+    );
+END;
+$$ LANGUAGE plpgsql STABLE SECURITY DEFINER;
+COMMENT ON FUNCTION public.is_class_tutor(UUID) IS 'Bypasses RLS to check if the current user is the tutor of a given class, preventing infinite recursion loops.';
 
--- Column-Level Security for Profiles (Prevents non-admins from updating their own 'role')
-REVOKE UPDATE ON public.profiles FROM authenticated;
-GRANT UPDATE (first_name, last_name, display_name) ON public.profiles TO authenticated;
-
--- Column-Level Security for Forum Posts (Prevents non-admins/non-tutors from changing author/class)
-REVOKE UPDATE ON public.forum_posts FROM authenticated;
-GRANT UPDATE (title, content, type, video_id, is_resolved) ON public.forum_posts TO authenticated;
+-- ====================================================================================
+-- RLS ACTIVATION
+-- ====================================================================================
 
 -- Enable RLS
 ALTER TABLE profiles ENABLE ROW LEVEL SECURITY;
@@ -417,7 +460,7 @@ COMMENT ON POLICY "Profiles_Select_AllAuth" ON profiles IS 'Permits read access 
 
 CREATE POLICY "Profiles_Update_SelfOrAdmin" ON profiles 
     FOR UPDATE USING (public.get_user_role() = 'admin' OR auth.uid() = id);
-COMMENT ON POLICY "Profiles_Update_SelfOrAdmin" ON profiles IS 'Restricts profile modifications to the owning user or administrators. Column-level grants prevent role escalation.';
+COMMENT ON POLICY "Profiles_Update_SelfOrAdmin" ON profiles IS 'Restricts profile modifications to the owning user or administrators. Anti-tampering triggers prevent role escalation.';
 
 -- ------------------------------------------------------------------------------------
 -- CLASSES
@@ -443,14 +486,14 @@ CREATE POLICY "Enrollments_Select_Authorized" ON class_enrollments
     FOR SELECT USING (
         public.get_user_role() = 'admin' OR 
         user_id = auth.uid() OR 
-        EXISTS (SELECT 1 FROM classes WHERE id = class_enrollments.class_id AND tutor_id = auth.uid())
+        public.is_class_tutor(class_id)
     );
 COMMENT ON POLICY "Enrollments_Select_Authorized" ON class_enrollments IS 'Allows users to view their own enrollments, whilst granting tutors visibility over their class rosters.';
 
 CREATE POLICY "Enrollments_Insert_TutorOrAdmin" ON class_enrollments 
     FOR INSERT WITH CHECK (
         public.get_user_role() = 'admin' OR 
-        EXISTS (SELECT 1 FROM classes WHERE id = class_enrollments.class_id AND tutor_id = auth.uid())
+        public.is_class_tutor(class_id)
     );
 COMMENT ON POLICY "Enrollments_Insert_TutorOrAdmin" ON class_enrollments IS 'Restricts the addition of students to a roster exclusively to the assigned tutor and administrators.';
 
@@ -458,7 +501,7 @@ CREATE POLICY "Enrollments_Delete_Authorized" ON class_enrollments
     FOR DELETE USING (
         public.get_user_role() = 'admin' OR 
         user_id = auth.uid() OR 
-        EXISTS (SELECT 1 FROM classes WHERE id = class_enrollments.class_id AND tutor_id = auth.uid())
+        public.is_class_tutor(class_id)
     );
 COMMENT ON POLICY "Enrollments_Delete_Authorized" ON class_enrollments IS 'Permits self-unenrollment by students, and roster management by tutors/administrators.';
 
@@ -615,7 +658,7 @@ CREATE POLICY "ForumPosts_Update_Authorized" ON forum_posts
         author_id = auth.uid() OR 
         EXISTS (SELECT 1 FROM classes WHERE id = forum_posts.class_id AND tutor_id = auth.uid())
     );
-COMMENT ON POLICY "ForumPosts_Update_Authorized" ON forum_posts IS 'Grants editing rights to authors and tutors. Column-level security prevents authors from hijacking posts or moving classes.';
+COMMENT ON POLICY "ForumPosts_Update_Authorized" ON forum_posts IS 'Grants editing rights to authors and tutors. Anti-tampering triggers prevent authors from hijacking posts or moving classes.';
 
 CREATE POLICY "ForumPosts_Delete_Authorized" ON forum_posts 
     FOR DELETE USING (
