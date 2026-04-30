@@ -25,20 +25,16 @@ RETURNS TRIGGER AS $$
 BEGIN
     INSERT INTO public.profiles (id, first_name, last_name, display_name, role)
     VALUES (
-        NEW.id, 
-        NEW.raw_user_meta_data->>'first_name', 
-        NEW.raw_user_meta_data->>'last_name', 
+        NEW.id,
+        NEW.raw_user_meta_data->>'first_name',
+        NEW.raw_user_meta_data->>'last_name',
         NEW.raw_user_meta_data->>'display_name',
-        CASE 
-            WHEN NEW.raw_user_meta_data->>'role' IN ('student', 'teacher', 'admin') 
-            THEN (NEW.raw_user_meta_data->>'role')::user_role
-            ELSE 'student'::user_role 
-        END
+        'student'::user_role
     );
     RETURN NEW;
 END;
 $$ LANGUAGE plpgsql SECURITY DEFINER;
-COMMENT ON FUNCTION public.handle_new_user() IS 'Automates profile provisioning upon identity creation. Runs with SECURITY DEFINER to bypass RLS during the authentication flow.';
+COMMENT ON FUNCTION public.handle_new_user() IS 'Automates profile provisioning upon identity creation. Hard-codes role to student to neutralize privilege escalation via user-controlled signup metadata. Runs with SECURITY DEFINER to bypass RLS during the authentication flow.';
 
 -- ====================================================================================
 -- PROFILES & RBAC
@@ -313,6 +309,41 @@ CREATE TRIGGER set_forum_replies_updated_at
     BEFORE UPDATE ON forum_replies
     FOR EACH ROW EXECUTE PROCEDURE public.set_current_timestamp_updated_at();
 
+-- ------------------------------------------------------------------------------------
+
+CREATE TABLE forum_post_upvotes (
+    user_id UUID NOT NULL REFERENCES profiles(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    post_id UUID NOT NULL REFERENCES forum_posts(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    PRIMARY KEY (user_id, post_id)
+);
+COMMENT ON TABLE forum_post_upvotes IS 'Authoritative ledger of forum post endorsements. The composite primary key enforces one-vote-per-user, and the table serves as the source of truth feeding the denormalized forum_posts.upvotes counter.';
+
+CREATE INDEX idx_forum_post_upvotes_post_id ON forum_post_upvotes(post_id);
+
+CREATE OR REPLACE FUNCTION public.maintain_forum_post_upvote_count()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF TG_OP = 'INSERT' THEN
+        UPDATE public.forum_posts SET upvotes = upvotes + 1 WHERE id = NEW.post_id;
+        RETURN NEW;
+    ELSIF TG_OP = 'DELETE' THEN
+        UPDATE public.forum_posts SET upvotes = GREATEST(upvotes - 1, 0) WHERE id = OLD.post_id;
+        RETURN OLD;
+    END IF;
+    RETURN NULL;
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+COMMENT ON FUNCTION public.maintain_forum_post_upvote_count() IS 'Maintains the denormalized forum_posts.upvotes counter in lockstep with the forum_post_upvotes ledger. Runs as SECURITY DEFINER so the upvoter (who is typically not the post owner) can mutate the counter despite forum_posts RLS.';
+
+CREATE TRIGGER maintain_upvote_count_on_insert
+    AFTER INSERT ON forum_post_upvotes
+    FOR EACH ROW EXECUTE PROCEDURE public.maintain_forum_post_upvote_count();
+
+CREATE TRIGGER maintain_upvote_count_on_delete
+    AFTER DELETE ON forum_post_upvotes
+    FOR EACH ROW EXECUTE PROCEDURE public.maintain_forum_post_upvote_count();
+
 -- ====================================================================================
 -- ANTI-TAMPERING TRIGGERS
 -- ====================================================================================
@@ -364,6 +395,22 @@ END;
 $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION public.protect_forum_post_ownership() IS 'Prevents users and tutors from tampering with the original authorship or class association of a forum post.';
 
+CREATE OR REPLACE FUNCTION public.protect_forum_post_upvotes()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF pg_trigger_depth() > 1 THEN
+        RETURN NEW;
+    END IF;
+
+    IF NEW.upvotes IS DISTINCT FROM OLD.upvotes AND public.get_user_role() != 'admin' THEN
+        RAISE EXCEPTION 'SECURITY VIOLATION: Direct manipulation of upvote counts is prohibited. Insert into forum_post_upvotes instead.';
+    END IF;
+
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+COMMENT ON FUNCTION public.protect_forum_post_upvotes() IS 'Hard-rejects direct UPDATEs to the denormalized forum_posts.upvotes column by non-admins. Legitimate increments and decrements flow through the forum_post_upvotes ledger and are detected via pg_trigger_depth().';
+
 -- Apply anti-tampering to all tables
 CREATE TRIGGER enforce_immutability_profiles BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
 CREATE TRIGGER enforce_immutability_classes BEFORE UPDATE ON classes FOR EACH ROW EXECUTE PROCEDURE public.prevent_immutable_modifications();
@@ -378,6 +425,7 @@ CREATE TRIGGER enforce_immutability_forum_replies BEFORE UPDATE ON forum_replies
 -- Apply specific column protection triggers
 CREATE TRIGGER enforce_role_security BEFORE UPDATE ON profiles FOR EACH ROW EXECUTE PROCEDURE public.protect_profile_role();
 CREATE TRIGGER enforce_forum_post_security BEFORE UPDATE ON forum_posts FOR EACH ROW EXECUTE PROCEDURE public.protect_forum_post_ownership();
+CREATE TRIGGER enforce_upvote_count_integrity BEFORE UPDATE ON forum_posts FOR EACH ROW EXECUTE PROCEDURE public.protect_forum_post_upvotes();
 
 -- ====================================================================================
 -- SECURITY HELPER FUNCTIONS
@@ -433,6 +481,7 @@ ALTER TABLE user_video_progress ENABLE ROW LEVEL SECURITY;
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_posts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE forum_replies ENABLE ROW LEVEL SECURITY;
+ALTER TABLE forum_post_upvotes ENABLE ROW LEVEL SECURITY;
 
 -- Force RLS ensures even table owners respect the policies
 ALTER TABLE profiles FORCE ROW LEVEL SECURITY;
@@ -446,6 +495,7 @@ ALTER TABLE user_video_progress FORCE ROW LEVEL SECURITY;
 ALTER TABLE announcements FORCE ROW LEVEL SECURITY;
 ALTER TABLE forum_posts FORCE ROW LEVEL SECURITY;
 ALTER TABLE forum_replies FORCE ROW LEVEL SECURITY;
+ALTER TABLE forum_post_upvotes FORCE ROW LEVEL SECURITY;
 
 -- ====================================================================================
 -- ROW LEVEL SECURITY POLICIES
@@ -636,9 +686,13 @@ CREATE POLICY "Announcements_Insert_Author" ON announcements
     );
 COMMENT ON POLICY "Announcements_Insert_Author" ON announcements IS 'Secures unidirectional broadcast capability exclusively to the assigned class tutor and administrators.';
 
-CREATE POLICY "Announcements_UpdateDelete_Author" ON announcements 
-    FOR ALL USING (public.get_user_role() = 'admin' OR author_id = auth.uid());
-COMMENT ON POLICY "Announcements_UpdateDelete_Author" ON announcements IS 'Grants broadcast modification rights strictly to the original authoring tutor or global administrators.';
+CREATE POLICY "Announcements_Update_Author" ON announcements
+    FOR UPDATE USING (public.get_user_role() = 'admin' OR author_id = auth.uid());
+COMMENT ON POLICY "Announcements_Update_Author" ON announcements IS 'Grants broadcast modification rights strictly to the original authoring tutor or global administrators. Scoped to UPDATE only — INSERT remains exclusively governed by Announcements_Insert_Author so enrolled students cannot self-author announcements via permissive policy ORing.';
+
+CREATE POLICY "Announcements_Delete_Author" ON announcements
+    FOR DELETE USING (public.get_user_role() = 'admin' OR author_id = auth.uid());
+COMMENT ON POLICY "Announcements_Delete_Author" ON announcements IS 'Grants broadcast deletion rights strictly to the original authoring tutor or global administrators.';
 
 -- FORUM POSTS
 CREATE POLICY "ForumPosts_Select_Authorized" ON forum_posts 
@@ -696,14 +750,41 @@ CREATE POLICY "ForumReplies_Update_Author" ON forum_replies
     FOR UPDATE USING (public.get_user_role() = 'admin' OR author_id = auth.uid());
 COMMENT ON POLICY "ForumReplies_Update_Author" ON forum_replies IS 'Strictly isolates reply editing capabilities to the original author, preventing tutors from modifying student discourse.';
 
-CREATE POLICY "ForumReplies_Delete_Authorized" ON forum_replies 
+CREATE POLICY "ForumReplies_Delete_Authorized" ON forum_replies
     FOR DELETE USING (
-        public.get_user_role() = 'admin' OR 
-        author_id = auth.uid() OR 
+        public.get_user_role() = 'admin' OR
+        author_id = auth.uid() OR
         EXISTS (
-            SELECT 1 FROM forum_posts fp 
-            JOIN classes c ON c.id = fp.class_id 
+            SELECT 1 FROM forum_posts fp
+            JOIN classes c ON c.id = fp.class_id
             WHERE fp.id = forum_replies.post_id AND c.tutor_id = auth.uid()
         )
     );
 COMMENT ON POLICY "ForumReplies_Delete_Authorized" ON forum_replies IS 'Permits reply deletion by the original author, acting tutors (for moderation), or global administrators.';
+
+-- ------------------------------------------------------------------------------------
+-- FORUM POST UPVOTES
+-- ------------------------------------------------------------------------------------
+CREATE POLICY "ForumPostUpvotes_Select_Authorized" ON forum_post_upvotes
+    FOR SELECT USING (
+        public.get_user_role() = 'admin' OR
+        EXISTS (
+            SELECT 1 FROM forum_posts fp
+            WHERE fp.id = forum_post_upvotes.post_id AND fp.class_id IN (SELECT public.get_user_class_ids())
+        )
+    );
+COMMENT ON POLICY "ForumPostUpvotes_Select_Authorized" ON forum_post_upvotes IS 'Mirrors forum post visibility — endorsements are visible only to users authorised to access the parent post context.';
+
+CREATE POLICY "ForumPostUpvotes_Insert_Self" ON forum_post_upvotes
+    FOR INSERT WITH CHECK (
+        user_id = auth.uid() AND
+        EXISTS (
+            SELECT 1 FROM forum_posts fp
+            WHERE fp.id = forum_post_upvotes.post_id AND fp.class_id IN (SELECT public.get_user_class_ids())
+        )
+    );
+COMMENT ON POLICY "ForumPostUpvotes_Insert_Self" ON forum_post_upvotes IS 'Permits a user to register a single endorsement against a post within their authorisation perimeter. The composite primary key structurally prevents duplicate votes.';
+
+CREATE POLICY "ForumPostUpvotes_Delete_Self" ON forum_post_upvotes
+    FOR DELETE USING (public.get_user_role() = 'admin' OR user_id = auth.uid());
+COMMENT ON POLICY "ForumPostUpvotes_Delete_Self" ON forum_post_upvotes IS 'Permits self-rescission of an endorsement, alongside administrative override for moderation.';
