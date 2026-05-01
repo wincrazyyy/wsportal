@@ -8,14 +8,6 @@ CREATE TYPE topic_status AS ENUM ('locked', 'active', 'completed');
 CREATE TYPE forum_post_type AS ENUM ('general', 'video_qa');
 
 -- ====================================================================================
--- DOMAIN TYPES
--- ====================================================================================
-
-CREATE DOMAIN public.https_url AS VARCHAR(2048)
-    CHECK (VALUE IS NULL OR VALUE ~* '^https://');
-COMMENT ON DOMAIN public.https_url IS 'Web URL constrained to 2048 characters (the de-facto safe upper bound across browsers and CDN edges) and to the https:// scheme. Centralises the URL-shape rule so individual columns no longer repeat it; nullable columns simply declare the type without NOT NULL.';
-
--- ====================================================================================
 -- SHARED TRIGGER FUNCTIONS
 -- ====================================================================================
 
@@ -169,13 +161,17 @@ CREATE TABLE videos (
     title VARCHAR(255) NOT NULL,
     description TEXT,
     duration INTERVAL,
-    video_url public.https_url,
+    video_url VARCHAR(2048),
     order_index INTEGER NOT NULL CHECK (order_index >= 0),
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    CONSTRAINT chk_videos_url_format CHECK (
+        video_url IS NULL OR video_url ~* '^https://'
+    )
 );
 COMMENT ON TABLE videos IS 'Primary instructional media nodes tied strictly to subtopics.';
-COMMENT ON COLUMN videos.video_url IS 'Typed as https_url; length and scheme rules are inherited from the domain definition.';
+COMMENT ON COLUMN videos.video_url IS 'Constrained to 2048 characters matching the maximum safe limit for standardised web URLs.';
+COMMENT ON CONSTRAINT chk_videos_url_format ON videos IS 'Ensures any provided URL is a valid HTTPS format; rejects insecure http:// transport.';
 
 CREATE INDEX idx_videos_subtopic_id ON videos(subtopic_id);
 
@@ -189,7 +185,7 @@ CREATE TABLE resources (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     size_bytes BIGINT NOT NULL CHECK (size_bytes >= 0),
-    file_url public.https_url NOT NULL,
+    file_url VARCHAR(2048) NOT NULL,
     topic_id UUID REFERENCES topics(id) ON DELETE CASCADE ON UPDATE CASCADE,
     subtopic_id UUID REFERENCES subtopics(id) ON DELETE CASCADE ON UPDATE CASCADE,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
@@ -197,11 +193,13 @@ CREATE TABLE resources (
     CONSTRAINT chk_resource_parent_exclusivity CHECK (
         (topic_id IS NOT NULL AND subtopic_id IS NULL) OR
         (topic_id IS NULL AND subtopic_id IS NOT NULL)
-    )
+    ),
+    CONSTRAINT chk_resources_url_format CHECK (file_url ~* '^https://')
 );
 COMMENT ON TABLE resources IS 'Polymorphic asset table supporting attachments to either topics or subtopics via constrained exclusivity.';
 COMMENT ON COLUMN resources.size_bytes IS 'Enforces BIGINT to prevent overflow issues common with large file representations in 32-bit integers.';
 COMMENT ON CONSTRAINT chk_resource_parent_exclusivity ON resources IS 'Guarantees the structural integrity of the asset hierarchy by acting as an XOR gate.';
+COMMENT ON CONSTRAINT chk_resources_url_format ON resources IS 'Enforces valid HTTPS protocol formatting for the mandatory file_url; rejects insecure http:// transport.';
 
 CREATE INDEX idx_resources_topic_id ON resources(topic_id);
 CREATE INDEX idx_resources_subtopic_id ON resources(subtopic_id);
@@ -249,13 +247,21 @@ CREATE TABLE announcements (
     content TEXT NOT NULL,
     type announcement_type DEFAULT 'standard'::announcement_type NOT NULL,
     link_title VARCHAR(255),
-    link_url public.https_url,
+    link_url VARCHAR(2048),
     image_alt VARCHAR(255),
-    image_url public.https_url,
+    image_url VARCHAR(2048),
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
-    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL
+    updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
+    CONSTRAINT chk_announcements_link_url_format CHECK (
+        link_url IS NULL OR link_url ~* '^https://'
+    ),
+    CONSTRAINT chk_announcements_image_url_format CHECK (
+        image_url IS NULL OR image_url ~* '^https://'
+    )
 );
 COMMENT ON TABLE announcements IS 'Unidirectional broadcast payloads distributed from administrators/educators to enrolled users.';
+COMMENT ON CONSTRAINT chk_announcements_link_url_format ON announcements IS 'Ensures optional link attachments are valid HTTPS URLs; rejects insecure http:// transport.';
+COMMENT ON CONSTRAINT chk_announcements_image_url_format ON announcements IS 'Ensures optional image attachments are valid HTTPS URLs; rejects insecure http:// transport.';
 
 CREATE INDEX idx_announcements_class_id ON announcements(class_id);
 CREATE INDEX idx_announcements_author_id ON announcements(author_id);
