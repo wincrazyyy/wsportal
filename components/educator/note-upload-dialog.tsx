@@ -13,9 +13,8 @@ import {
   reapNoteObjectAction,
 } from "@/app/actions/resources";
 import { formatBytes } from "@/lib/utils/format";
+import { NOTE_MAX_BYTES, NOTE_MAX_LABEL } from "@/lib/storage/note-limits";
 import type { PlacementParent } from "@/lib/types/database";
-
-const MAX_BYTES = 100 * 1024 * 1024;
 
 interface NoteUploadDialogProps {
   /** When set, each new note is placed under this node as well as landing in the library. */
@@ -110,8 +109,8 @@ export function NoteUploadDialog({
         rejected.push(`${candidate.name} (not a PDF)`);
         continue;
       }
-      if (candidate.size > MAX_BYTES) {
-        rejected.push(`${candidate.name} (over 100 MB)`);
+      if (candidate.size > NOTE_MAX_BYTES) {
+        rejected.push(`${candidate.name} (over ${NOTE_MAX_LABEL})`);
         continue;
       }
       if (merged.some((f) => f.name === candidate.name && f.size === candidate.size)) continue;

@@ -17,8 +17,7 @@ import {
 } from "@/lib/curriculum/placements";
 import { isOwnNoteKey, noteFileUrl, noteKeyFromFileUrl } from "@/lib/storage/notes";
 import { deleteNoteObjects, headNoteSize, presignNotePut } from "@/lib/storage/r2";
-
-const MAX_BYTES = 100 * 1024 * 1024;
+import { NOTE_MAX_BYTES, NOTE_MAX_LABEL } from "@/lib/storage/note-limits";
 
 export interface ResourceActionState {
   error?: string;
@@ -117,9 +116,9 @@ export async function createNoteUploadAction(input: {
     await deleteNoteObjects([input.storagePath]);
     return { error: "Upload could not be verified. Please try again." };
   }
-  if (trueSize > MAX_BYTES) {
+  if (trueSize > NOTE_MAX_BYTES) {
     await deleteNoteObjects([input.storagePath]);
-    return { error: "File must be 100 MB or smaller." };
+    return { error: `File must be ${NOTE_MAX_LABEL} or smaller.` };
   }
 
   const supabase = await createClient();
