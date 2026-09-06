@@ -24,7 +24,7 @@ export async function StudentClassView({ cls, userId }: { cls: Class; userId: st
 
   const [curriculum, announcements, educator, totals, access] = await Promise.all([
     getCurriculumForClass(classId, userId),
-    getAnnouncementsForClass(classId, 10),
+    getAnnouncementsForClass(classId, 10, { pinnedFirst: true }),
     getClassEducator(cls.educator_id),
     getClassVideoTotals(classId, userId),
     getMyClassAccess(classId, userId),

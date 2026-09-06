@@ -49,6 +49,19 @@ END;
 $$ LANGUAGE plpgsql;
 COMMENT ON FUNCTION internal.set_forum_reply_updated_at() IS 'Reply analogue of set_forum_post_updated_at. Skips the timestamp bump when fired inside a nested trigger chain (the forum_reply_upvotes ledger maintenance), so comment endorsements never mark a reply as edited. User-issued content edits and soft-deletes arrive at depth 1 and bump updated_at.';
 
+CREATE OR REPLACE FUNCTION internal.set_announcement_updated_at()
+RETURNS TRIGGER AS $$
+BEGIN
+    IF (to_jsonb(NEW) - 'is_pinned' - 'updated_at') = (to_jsonb(OLD) - 'is_pinned' - 'updated_at') THEN
+        NEW.updated_at = OLD.updated_at;
+        RETURN NEW;
+    END IF;
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+COMMENT ON FUNCTION internal.set_announcement_updated_at() IS 'Column-aware variant of set_current_timestamp_updated_at scoped to announcements. Compares the row with is_pinned and updated_at masked out: when nothing else changed (a pin or unpin, or a no-op update) the previous updated_at is preserved, so the card never shows an edited marker for a sticky flip; any content edit still arrives here and bumps updated_at as before. Also discards a caller-supplied updated_at on a pin-only update.';
+
 CREATE OR REPLACE FUNCTION internal.maintain_class_published_at()
 RETURNS TRIGGER AS $$
 BEGIN

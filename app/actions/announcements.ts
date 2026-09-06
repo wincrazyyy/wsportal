@@ -27,6 +27,14 @@ export interface AnnouncementInput {
 
 const TYPES: AnnouncementType[] = ["standard", "important", "event"];
 
+/** Every surface that renders this class's announcements: the class page (both role views), the
+ *  dedicated announcements page, and the cross-class dashboard feed. */
+function revalidateAnnouncements(classId: string) {
+  revalidatePath(`/class/${classId}`);
+  revalidatePath(`/class/${classId}/announcements`);
+  revalidatePath("/dashboard");
+}
+
 interface CleanInput {
   title: string;
   content: string;
@@ -110,8 +118,7 @@ export async function createAnnouncementAction(
      own unread dot/badge (best-effort). */
   await supabase.from("announcement_reads").insert({ user_id: profile.id, announcement_id: id });
 
-  revalidatePath(`/class/${input.classId}`);
-  revalidatePath("/dashboard");
+  revalidateAnnouncements(input.classId);
   return { id };
 }
 
@@ -140,8 +147,7 @@ export async function updateAnnouncementAction(
 
   if (error) return { error: error.message };
 
-  revalidatePath(`/class/${input.classId}`);
-  revalidatePath("/dashboard");
+  revalidateAnnouncements(input.classId);
   return {};
 }
 
@@ -172,7 +178,40 @@ export async function deleteAnnouncementAction(
   const { error } = await supabase.from("announcements").delete().eq("id", announcementId);
   if (error) return { error: error.message };
 
-  revalidatePath(`/class/${classId}`);
-  revalidatePath("/dashboard");
+  revalidateAnnouncements(classId);
+  return {};
+}
+
+export async function setAnnouncementPinnedAction(
+  classId: string,
+  announcementId: string,
+  pinned: boolean,
+): Promise<AnnouncementActionState> {
+  const profile = await getCurrentProfile();
+  if (!profile) return { error: "Sign in required." };
+
+  const supabase = await createClient();
+  /* Pinning is reserved to the class educator or an admin (mirrors setPostPinnedAction). RLS is the
+     backstop: announcements_update_author only lets the author or an admin write the row. */
+  if (profile.role !== "admin") {
+    const { data: cls } = await supabase.from("classes").select("educator_id").eq("id", classId).maybeSingle();
+    if (!cls || (cls as { educator_id: string | null }).educator_id !== profile.id) {
+      return { error: "Only the class educator can pin announcements." };
+    }
+  }
+
+  const { data, error } = await supabase
+    .from("announcements")
+    .update({ is_pinned: pinned })
+    .eq("id", announcementId)
+    .eq("class_id", classId)
+    .select("id")
+    .maybeSingle();
+  if (error) return { error: error.message };
+  /* RLS matches zero rows (no error) when the caller isn't the author or an admin, or the id belongs to
+     another class — surface that rather than reporting a silent no-op as success. */
+  if (!data) return { error: "You can't pin this announcement." };
+
+  revalidateAnnouncements(classId);
   return {};
 }

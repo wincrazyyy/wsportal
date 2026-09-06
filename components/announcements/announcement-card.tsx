@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { ExternalLink, Megaphone, Ticket } from "lucide-react";
+import { ExternalLink, Megaphone, Pin, Ticket } from "lucide-react";
 
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -65,6 +65,12 @@ export function AnnouncementCard({ announcement: ann, viewerId, viewerIsAdmin, s
           </div>
         </div>
         <div className="ml-auto flex shrink-0 flex-wrap items-center justify-end gap-1.5">
+          {ann.is_pinned && (
+            <Badge variant="secondary" className="bg-primary/10 text-primary hover:bg-primary/10 border-transparent pointer-events-none gap-1">
+              <Pin className="h-3 w-3 shrink-0" aria-hidden="true" />
+              Pinned
+            </Badge>
+          )}
           {ann.pass_id && (
             <Badge
               variant="secondary"
@@ -121,7 +127,7 @@ export function AnnouncementCard({ announcement: ann, viewerId, viewerIsAdmin, s
 
       {canManage && (
         <div className="mt-4 flex justify-end border-t border-border/50 pt-3">
-          <AnnouncementActions classId={ann.class_id} announcementId={ann.id} />
+          <AnnouncementActions classId={ann.class_id} announcementId={ann.id} pinned={ann.is_pinned} />
         </div>
       )}
     </Card>

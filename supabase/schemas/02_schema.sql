@@ -636,6 +636,7 @@ CREATE TABLE announcements (
     image_url TEXT CHECK (image_url IS NULL OR (char_length(image_url) <= 2048 AND image_url ~* '^https://')),
     event_at TIMESTAMPTZ,
     pass_id UUID REFERENCES class_passes(id) ON DELETE CASCADE ON UPDATE CASCADE,
+    is_pinned BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     updated_at TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     CONSTRAINT chk_announcement_event_at CHECK (event_at IS NULL OR type = 'event'::announcement_type)
@@ -645,6 +646,7 @@ COMMENT ON COLUMN announcements.event_at IS 'When the event happens (event-type 
 COMMENT ON COLUMN announcements.link_url IS 'Optional outbound link. Inline CHECK enforces both 2048-char cap and HTTPS-only transport.';
 COMMENT ON COLUMN announcements.image_url IS 'Optional inline image. Inline CHECK enforces both 2048-char cap and HTTPS-only transport.';
 COMMENT ON COLUMN announcements.pass_id IS 'NULL = broadcast to the whole class (default — every pre-existing row stays broadcast). Set = visible only to the class educator, admins, and holders of that pass (announcements_select_authorized). ON DELETE CASCADE: a targeted announcement dies with its audience — an orphaned targeted message shown to nobody, or worse silently flipped to broadcast, would both be wrong. One pass per announcement in v1 (post once per pass for multi-audience). Class membership of the pass is enforced by enforce_announcement_pass_class; audience is create-time-only in the app (updateAnnouncementAction does not accept it).';
+COMMENT ON COLUMN announcements.is_pinned IS 'Educator/admin sticky flag (the forum_posts.is_pinned precedent). Pinned announcements float above the chronological list on the per-class surfaces (the announcements page and the class feed); the cross-class dashboard feed and the class-manage latest-preview stay chronological. Orthogonal to type: an important notice may be unpinned and a plain standing note (a recurring meeting link) may be pinned. Toggled by setAnnouncementPinnedAction and gated by announcements_update_author (author or admin, and only the class educator or an admin can author), so no extra trigger is needed. A flip alone does NOT bump updated_at (set_announcement_updated_at).';
 
 CREATE INDEX idx_announcements_class_id ON announcements(class_id);
 CREATE INDEX idx_announcements_author_id ON announcements(author_id);
@@ -652,7 +654,7 @@ CREATE INDEX idx_announcements_pass_id ON announcements(pass_id);
 
 CREATE TRIGGER set_announcements_updated_at
     BEFORE UPDATE ON announcements
-    FOR EACH ROW EXECUTE PROCEDURE internal.set_current_timestamp_updated_at();
+    FOR EACH ROW EXECUTE PROCEDURE internal.set_announcement_updated_at();
 
 CREATE TRIGGER enforce_announcement_pass_class
     BEFORE INSERT OR UPDATE ON announcements

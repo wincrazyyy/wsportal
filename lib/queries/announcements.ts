@@ -9,8 +9,16 @@ export interface AnnouncementWithAuthor extends Announcement {
   pass_name: string | null;
 }
 
+export interface ClassAnnouncementOptions {
+  /** Float pinned announcements above the chronological list. On for the per-class reading surfaces (the
+   *  announcements page + the class feed); off (pure newest-first) for the class-manage panel, whose
+   *  "latest" preview must mean the newest post, not an old sticky one. The cross-class dashboard feed
+   *  always stays chronological — a pin is a per-class decision. */
+  pinnedFirst?: boolean;
+}
+
 const ANNOUNCEMENT_SELECT =
-  "id, class_id, author_id, title, content, type, link_title, link_url, image_alt, image_url, event_at, pass_id, created_at, updated_at, classes!inner(code), class_passes(name), author:profiles_public!announcements_author_id_fkey(id, first_name, last_name, display_name, role, is_approved, avatar_url)";
+  "id, class_id, author_id, title, content, type, link_title, link_url, image_alt, image_url, event_at, pass_id, is_pinned, created_at, updated_at, classes!inner(code), class_passes(name), author:profiles_public!announcements_author_id_fkey(id, first_name, last_name, display_name, role, is_approved, avatar_url)";
 
 type RawRow = Announcement & {
   classes: { code: string } | null;
@@ -44,7 +52,7 @@ export async function getAnnouncementById(id: string): Promise<Announcement | nu
   const supabase = await createClient();
   const { data } = await supabase
     .from("announcements")
-    .select("id, class_id, author_id, title, content, type, link_title, link_url, image_alt, image_url, event_at, pass_id, created_at, updated_at")
+    .select("id, class_id, author_id, title, content, type, link_title, link_url, image_alt, image_url, event_at, pass_id, is_pinned, created_at, updated_at")
     .eq("id", id)
     .maybeSingle();
   return (data as Announcement | null) ?? null;
@@ -64,16 +72,17 @@ export async function getAnnouncementsForUser(limit = 20): Promise<AnnouncementW
   return decorate((data ?? []) as unknown as RawRow[], user.id);
 }
 
-export async function getAnnouncementsForClass(classId: string, limit = 20): Promise<AnnouncementWithAuthor[]> {
+export async function getAnnouncementsForClass(
+  classId: string,
+  limit = 20,
+  { pinnedFirst = false }: ClassAnnouncementOptions = {},
+): Promise<AnnouncementWithAuthor[]> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data } = await supabase
-    .from("announcements")
-    .select(ANNOUNCEMENT_SELECT)
-    .eq("class_id", classId)
-    .order("created_at", { ascending: false })
-    .limit(limit);
+  const base = supabase.from("announcements").select(ANNOUNCEMENT_SELECT).eq("class_id", classId);
+  const ordered = pinnedFirst ? base.order("is_pinned", { ascending: false }) : base;
+  const { data } = await ordered.order("created_at", { ascending: false }).limit(limit);
 
   return decorate((data ?? []) as unknown as RawRow[], user?.id ?? null);
 }

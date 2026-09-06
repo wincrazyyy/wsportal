@@ -361,6 +361,8 @@ export interface Announcement {
   event_at: string | null;
   /** NULL = broadcast to the whole class; set = targeted at the holders of one Access Pass. */
   pass_id: string | null;
+  /** Educator/admin sticky flag — pinned announcements float above the chronological list on per-class surfaces. */
+  is_pinned: boolean;
   created_at: string;
   updated_at: string;
 }

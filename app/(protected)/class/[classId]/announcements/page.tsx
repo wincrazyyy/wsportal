@@ -1,10 +1,10 @@
 import { notFound, redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Inbox, Megaphone, Plus } from "lucide-react";
+import { ArrowLeft, Clock, Inbox, Megaphone, Pin, Plus } from "lucide-react";
 
 import { getCurrentProfile } from "@/lib/queries/profile";
 import { getClassById } from "@/lib/queries/classes";
-import { getAnnouncementsForClass } from "@/lib/queries/announcements";
+import { getAnnouncementsForClass, type AnnouncementWithAuthor } from "@/lib/queries/announcements";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
@@ -24,10 +24,22 @@ export default async function ClassAnnouncementsPage({
   const cls = await getClassById(classId);
   if (!cls) notFound();
 
-  const announcements = await getAnnouncementsForClass(classId, 100);
+  const announcements = await getAnnouncementsForClass(classId, 100, { pinnedFirst: true });
   const isAdmin = profile.role === "admin";
   const canPost = isAdmin || cls.educator_id === profile.id;
   const unreadIds = announcements.filter((a) => !a.has_read).map((a) => a.id);
+  const pinned = announcements.filter((a) => a.is_pinned);
+  const rest = announcements.filter((a) => !a.is_pinned);
+
+  const renderCard = (ann: AnnouncementWithAuthor) => (
+    <AnnouncementCard
+      key={ann.id}
+      announcement={ann}
+      viewerId={profile.id}
+      viewerIsAdmin={isAdmin}
+      unread={!ann.has_read}
+    />
+  );
 
   return (
     <div className="flex-1 p-4 sm:p-6 md:p-8 overflow-y-auto max-w-3xl mx-auto w-full space-y-6">
@@ -79,15 +91,22 @@ export default async function ClassAnnouncementsPage({
         </Card>
       ) : (
         <div className="flex flex-col gap-6">
-          {announcements.map((ann) => (
-            <AnnouncementCard
-              key={ann.id}
-              announcement={ann}
-              viewerId={profile.id}
-              viewerIsAdmin={isAdmin}
-              unread={!ann.has_read}
-            />
-          ))}
+          {pinned.length > 0 && (
+            <>
+              <h2 className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-primary">
+                <Pin className="h-3.5 w-3.5" aria-hidden="true" />
+                Pinned
+              </h2>
+              {pinned.map(renderCard)}
+              {rest.length > 0 && (
+                <h2 className="mt-2 flex items-center gap-2 border-t border-border/60 pt-6 text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                  Latest
+                </h2>
+              )}
+            </>
+          )}
+          {rest.map(renderCard)}
         </div>
       )}
     </div>
